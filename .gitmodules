@@ -1,0 +1,4 @@
+[submodule "agents/smart-email-manager"]
+	path = agents/smart-email-manager
+	url = https://github.com/jsreeharshitha/smart-email-manager.git
+	branch = main
