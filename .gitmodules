@@ -2,3 +2,6 @@
 	path = agents/smart-email-manager
 	url = https://github.com/jsreeharshitha/smart-email-manager.git
 	branch = main
+[submodule "agents/inbox-analytics"]
+	path = agents/inbox-analytics
+	url = https://github.com/jsreeharshitha/inbox-analytics-agent
