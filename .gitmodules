@@ -5,3 +5,6 @@
 [submodule "agents/inbox-analytics"]
 	path = agents/inbox-analytics
 	url = https://github.com/jsreeharshitha/inbox-analytics-agent
+[submodule "agents/self-arizeing-manager"]
+	path = agents/self-arizeing-manager
+	url = https://github.com/jsreeharshitha/self-arize-ing-email-agent
