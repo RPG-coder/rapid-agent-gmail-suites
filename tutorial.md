@@ -28,6 +28,15 @@ The Gmail Add-on has already provided your preferred region and a setup token.
 - **Selected Region**: `$CHOSEN_REGION`
 - **Setup Token**: `$SETUP_TOKEN`
 
+Run the following to prepare your environment and ensure your Gmail account has the necessary permissions to verify the deployment later:
+
+```bash
+USER_EMAIL=$(echo $SETUP_TOKEN | base64 --decode)
+gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+    --member="user:$USER_EMAIL" \
+    --role="roles/run.viewer"
+```
+
 ## Step 2: Initialize Submodules
 
 Ensure the agent code is correctly pulled from the submodule:
