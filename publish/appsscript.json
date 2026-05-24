@@ -5,6 +5,7 @@
   "runtimeVersion": "V8",
   "urlFetchWhitelist": [
     "https://smart-email-manager-agent-zlcyhbxgya-uc.a.run.app/",
+    "https://smart-email-manager-agent-983993789043.us-central1.run.app/",
     "https://run.googleapis.com/"
   ],
   "oauthScopes": [
