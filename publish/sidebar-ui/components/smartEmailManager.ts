@@ -8,12 +8,14 @@
  * @param connectionTimestamp Timestamp of the last connection verification.
  * @param syncPercentage Current sync percentage.
  * @param syncTimestamp Timestamp of the last sync.
+ * @param message Optional message to display (e.g., verification result).
  */
 function createSmartEmailManagerCard(
-  connectionStatus: string = "Success",
-  connectionTimestamp: string = new Date().toLocaleString(),
-  syncPercentage: string = "100",
-  syncTimestamp: string = new Date().toLocaleString()
+  connectionStatus: string = "Not verified",
+  connectionTimestamp: string = "N/A",
+  syncPercentage: string = "0",
+  syncTimestamp: string = "N/A",
+  message: string = ""
 ) {
   const cardBuilder = CardService.newCardBuilder().setName("SMART_EMAIL_MANAGER");
 
@@ -27,10 +29,54 @@ function createSmartEmailManagerCard(
     )
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<font color="#999999">This feature will organize all your mails into appropiate label groups so you can know where your most important mails are when you access.</font>'
+        '<font color="#999999">This feature will organize all your mails into appropriate label groups so you can know where your most important mails are when you access.</font>'
       )
     );
+  
+  if (message) {
+    headerSection.addWidget(
+      CardService.newTextParagraph().setText(`<font color="#0F9D58">${message}</font>`)
+    );
+  }
+  
   cardBuilder.addSection(headerSection);
+
+  // Deployment Section (NEW)
+  const deploymentSection = CardService.newCardSection()
+    .setHeader("GCP Deployment")
+    .addWidget(
+      CardService.newTextParagraph().setText(
+        '<font color="#999999">Select your preferred region and deploy the agent to Google Cloud Platform.</font>'
+      )
+    )
+    .addWidget(
+      CardService.newSelectionInput()
+        .setType(CardService.SelectionInputType.DROPDOWN)
+        .setTitle("Select Region")
+        .setFieldName("region")
+        .addItem("US Central (Iowa)", "us-central1", true)
+        .addItem("US East (S. Carolina)", "us-east1", false)
+        .addItem("Europe West (Belgium)", "europe-west1", false)
+        .addItem("Asia East (Taiwan)", "asia-east1", false)
+        .addItem("Australia Southeast (Sydney)", "australia-southeast1", false)
+    )
+    .addWidget(
+      CardService.newButtonSet()
+        .addButton(
+          CardService.newTextButton()
+            .setText("Deploy GCP")
+            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+            .setBackgroundColor("#4285F4")
+            .setOnClickAction(CardService.newAction().setFunctionName("onDeployGCPSEM"))
+        )
+        .addButton(
+          CardService.newTextButton()
+            .setText("Verify Deployment")
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(CardService.newAction().setFunctionName("onVerifyDeploymentSEM"))
+        )
+    );
+  cardBuilder.addSection(deploymentSection);
 
   // Automated Workflows Section
   const autoWorkflowsSection = CardService.newCardSection()
@@ -111,7 +157,7 @@ function createSmartEmailManagerCard(
     // Group 2
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<font color="#999999">Set the max semantic score that the manager can agree upon. Below this threshold the manager will reorganize mails to meet the balanced semantic scores, if necessary generate new appropiate labels.</font>'
+        '<font color="#999999">Set the max semantic score that the manager can agree upon. Below this threshold the manager will reorganize mails to meet the balanced semantic scores, if necessary generate new appropriate labels.</font>'
       )
     )
     .addWidget(
@@ -153,6 +199,85 @@ function createSmartEmailManagerCard(
   cardBuilder.addSection(footerSection);
 
   return cardBuilder.build();
+}
+
+/**
+ * Action handler for Deploy GCP.
+ */
+function onDeployGCPSEM(e: any) {
+  const selectedRegion = e.formInput.region || "us-central1";
+  const userEmail = Session.getActiveUser().getEmail();
+  const userEmailToken = Utilities.base64Encode(userEmail);
+  
+  // URL to launch Cloud Shell with tutorial and environment variables
+  const repoUrl = "https://github.com/rahulgputcha/smart-email-manager"; // Placeholder repo URL
+  const cloudShellUrl = "https://shell.cloud.google.com/cloudshell/editor" +
+    "?cloudshell_git_repo=" + encodeURIComponent(repoUrl) +
+    "&cloudshell_tutorial=tutorial.md" +
+    "&cloudshell_env=CHOSEN_REGION=" + encodeURIComponent(selectedRegion) +
+    "&cloudshell_env=SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
+
+  return CardService.newActionResponseBuilder()
+    .setOpenLink(CardService.newOpenLink().setUrl(cloudShellUrl))
+    .build();
+}
+
+/**
+ * Action handler for Verify Deployment.
+ */
+function onVerifyDeploymentSEM(e: any) {
+  const selectedRegion = e.formInput.region || "us-central1";
+  const accessToken = ScriptApp.getOAuthToken();
+  
+  try {
+    // 1. Get Project ID (This usually requires another step or assuming the current project)
+    // For this implementation, we will try to list projects if we have scope, 
+    // or use a default one if set in script properties.
+    const projectId = "google-rapid-agent-hackathon"; // Placeholder Project ID
+    
+    // 2. Query Cloud Run Admin API
+    const url = `https://run.googleapis.com/v1/projects/${projectId}/locations/${selectedRegion}/services`;
+    const response = UrlFetchApp.fetch(url, {
+      headers: { Authorization: "Bearer " + accessToken },
+      muteHttpExceptions: true
+    });
+    
+    if (response.getResponseCode() === 200) {
+      const data = JSON.parse(response.getContentText());
+      const services = data.items || [];
+      
+      // 3. RegEx to find the service
+      const serviceRegex = /smart-email-manager-agent/i;
+      const matchedService = services.find((s: any) => serviceRegex.test(s.metadata.name));
+      
+      if (matchedService) {
+        const serviceUrl = matchedService.status.url;
+        // Save the URL to ScriptProperties for later use
+        PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", serviceUrl);
+        
+        return CardService.newActionResponseBuilder()
+          .setNavigation(CardService.newNavigation().updateCard(
+            createSmartEmailManagerCard("Success", new Date().toLocaleString(), "0", "N/A", "✅ Service found: " + serviceUrl)
+          ))
+          .setNotification(CardService.newNotification().setText("Cloud Run service verified successfully!"))
+          .build();
+      } else {
+        return CardService.newActionResponseBuilder()
+          .setNotification(CardService.newNotification().setText("No matching Cloud Run service found in " + selectedRegion))
+          .build();
+      }
+    } else {
+      console.error("Cloud Run API Error:", response.getContentText());
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("Error querying Cloud Run API: " + response.getResponseCode()))
+        .build();
+    }
+  } catch (err) {
+    console.error("Verification Error:", err);
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Verification failed: " + err.toString()))
+      .build();
+  }
 }
 
 /**
