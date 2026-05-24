@@ -208,6 +208,29 @@ function onLoginToMongoDB(e: any) {
 }
 
 /**
+ * Action handler for MongoDB Registration.
+ */
+function onRegisterToMongoDB(e: any) {
+  const userEmail = Session.getActiveUser().getEmail();
+  const cloudRunUrl = getCloudRunUrl();
+  const url = `${cloudRunUrl}/mongodb/register?user_email=${encodeURIComponent(userEmail)}`;
+  try {
+    const response = UrlFetchApp.fetch(url);
+    const data = JSON.parse(response.getContentText());
+    if (data.register_url) {
+      return CardService.newActionResponseBuilder()
+        .setOpenLink(CardService.newOpenLink().setUrl(data.register_url))
+        .build();
+    }
+  } catch (e) {
+    console.error("Error initiating MongoDB registration:", e);
+  }
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("Failed to initiate MongoDB registration."))
+    .build();
+}
+
+/**
  * Event handlers for button clicks.
  */
 
@@ -234,4 +257,15 @@ function onAskQuestions(e: any) {
       CardService.newNotification().setText("Opening mailbox questions..."),
     )
     .build();
+}
+
+/**
+ * DUMMY FUNCTION: Forces the script to request GCP Platform Scopes.
+ * Do not delete this; it ensures getOAuthToken() has enough power.
+ */
+function forceGCPAuth() {
+  UrlFetchApp.fetch("https://run.googleapis.com/v1/projects/project-9c87d17f-07e0-465a-ace/locations/us-central1/services", {
+    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
 }

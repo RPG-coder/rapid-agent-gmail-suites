@@ -117,12 +117,32 @@ function createSmartEmailManagerCard(
             .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
             .setOnClickAction(CardService.newAction().setFunctionName("onCheckConnectionSEM"))
         )
+    );
+
+  if (connectionStatus === "Success") {
+    manualWorkflowsSection.addWidget(
+      CardService.newButtonSet()
+        .addButton(
+          CardService.newTextButton()
+            .setText("Signin to MongoDB")
+            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+            .setBackgroundColor("#0F9D58")
+            .setOnClickAction(CardService.newAction().setFunctionName("onLoginToMongoDB"))
+        )
+        .addButton(
+          CardService.newTextButton()
+            .setText("Register to MongoDB")
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(CardService.newAction().setFunctionName("onRegisterToMongoDB"))
+        )
+    );
+  }
+
+  manualWorkflowsSection.addWidget(
+    CardService.newTextParagraph().setText(
+      `<b>Last Verified:</b> <font color="${connectionStatusColor}">${connectionStatus}</font>${connectionTimestampDisplay}`
     )
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        `<b>Last Verified:</b> <font color="${connectionStatusColor}">${connectionStatus}</font>${connectionTimestampDisplay}`
-      )
-    )
+  )
     .addWidget(
       CardService.newButtonSet()
         .addButton(
