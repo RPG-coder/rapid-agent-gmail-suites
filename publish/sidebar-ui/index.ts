@@ -2,6 +2,11 @@
  * Main entry point for the Gmail Add-on.
  */
 
+function getCloudRunUrl() {
+  const url = PropertiesService.getScriptProperties().getProperty("CLOUD_RUN_URL");
+  return url || "https://smart-email-manager-agent-xxxxxx.a.run.app"; // Fallback placeholder
+}
+
 function onHomepage(e: any) {
   return createMainCard();
 }
@@ -11,10 +16,30 @@ function onGmailMessage(e: any) {
 }
 
 /**
+ * Checks if the user is logged into MongoDB via Cloud Run.
+ */
+function isUserLoggedInMongoDB() {
+  const userEmail = Session.getActiveUser().getEmail();
+  const cloudRunUrl = getCloudRunUrl();
+  const url = `${cloudRunUrl}/mongodb/status?user_email=${encodeURIComponent(userEmail)}`;
+  try {
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (response.getResponseCode() === 200) {
+      const data = JSON.parse(response.getContentText());
+      return data.logged_in;
+    }
+  } catch (e) {
+    console.error("Error checking MongoDB status:", e);
+  }
+  return false;
+}
+
+/**
  * Creates the main card based on the design in image.png.
  */
 function createMainCard() {
   const cardBuilder = CardService.newCardBuilder().setName("MAIN");
+  const isLoggedIn = isUserLoggedInMongoDB();
 
   // Header/Title Section
   const headerSection = CardService.newCardSection()
@@ -38,8 +63,10 @@ function createMainCard() {
       CardService.newTextParagraph().setText(
         '<small><font color="#999999">This feature will organize all your mails into appropriate label groups so you can know where your most important mails are when you access.</font></small>',
       ),
-    )
-    .addWidget(
+    );
+
+  if (isLoggedIn) {
+    smartEmailManagerSection.addWidget(
       CardService.newButtonSet()
         .addButton(
           CardService.newTextButton()
@@ -58,6 +85,20 @@ function createMainCard() {
             ),
         ),
     );
+  } else {
+    smartEmailManagerSection.addWidget(
+      CardService.newButtonSet()
+        .addButton(
+          CardService.newTextButton()
+            .setText("Login to MongoDB")
+            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+            .setBackgroundColor("#0F9D58")
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("onLoginToMongoDB"),
+            ),
+        ),
+    );
+  }
 
   cardBuilder.addSection(smartEmailManagerSection);
 
@@ -157,6 +198,29 @@ function createMainCard() {
 }
 
 /**
+ * Action handler for MongoDB Login.
+ */
+function onLoginToMongoDB(e: any) {
+  const userEmail = Session.getActiveUser().getEmail();
+  const cloudRunUrl = getCloudRunUrl();
+  const url = `${cloudRunUrl}/mongodb/login?user_email=${encodeURIComponent(userEmail)}`;
+  try {
+    const response = UrlFetchApp.fetch(url);
+    const data = JSON.parse(response.getContentText());
+    if (data.auth_url) {
+      return CardService.newActionResponseBuilder()
+        .setOpenLink(CardService.newOpenLink().setUrl(data.auth_url))
+        .build();
+    }
+  } catch (e) {
+    console.error("Error initiating MongoDB login:", e);
+  }
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("Failed to initiate MongoDB login."))
+    .build();
+}
+
+/**
  * Event handlers for button clicks.
  */
 
@@ -170,8 +234,9 @@ function onViewSettings(e: any) {
 
 function onCheckConnections(e: any) {
   return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(createMainCard()))
     .setNotification(
-      CardService.newNotification().setText("Checking agent connections..."),
+      CardService.newNotification().setText("Connections checked and UI updated."),
     )
     .build();
 }
