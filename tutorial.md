@@ -38,23 +38,32 @@ git submodule update --init --recursive
 
 ## Step 3: Build and Deploy
 
-Navigate to the agent directory and run the deployment script. The script will use the region you selected in the Gmail Add-on.
+1.  **Create Repository**: Create a Docker repository in Artifact Registry to host your agent image.
+
+```bash
+gcloud artifacts repositories create agent-repo \
+    --repository-format=docker \
+    --location=$CHOSEN_REGION \
+    --description="Docker repository for Rapid Agent Gmail Suite"
+```
+
+2.  **Navigate and Build**: Navigate to the agent directory and build the container image.
 
 ```bash
 cd agents/smart-email-manager
 ```
 
-Now, execute the deployment command:
+Execute the build command:
 
 ```bash
-gcloud builds submit --tag gcr.io/$(gcloud config get-value project)/smart-email-manager-agent .
+gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$(gcloud config get-value project)/agent-repo/smart-email-manager-agent .
 ```
 
-After the build completes, deploy to Cloud Run:
+3.  **Deploy to Cloud Run**: After the build completes, deploy the container to Cloud Run.
 
 ```bash
 gcloud run deploy smart-email-manager-agent \
-  --image gcr.io/$(gcloud config get-value project)/smart-email-manager-agent \
+  --image $CHOSEN_REGION-docker.pkg.dev/$(gcloud config get-value project)/agent-repo/smart-email-manager-agent \
   --platform managed \
   --region $CHOSEN_REGION \
   --allow-unauthenticated \
