@@ -7,7 +7,13 @@ Welcome to the deployment tutorial for the Smart Email Manager Agent! This guide
 1.  **Project ID**: Ensure you are in the correct Google Cloud project.
     <walkthrough-project-setup></walkthrough-project-setup>
 
-2.  **Enable APIs**: Run the following command to enable the necessary APIs (Cloud Build, Cloud Run, and Artifact Registry).
+    Run the following command to set your project context (replace `<YOUR_PROJECT_ID>` with your actual Project ID):
+
+    ```bash
+    gcloud config set project <YOUR_PROJECT_ID>
+    ```
+
+2.  **Enable APIs**: Run the following command to enable the necessary APIs.
 
 ```bash
 gcloud services enable run.googleapis.com \
