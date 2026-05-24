@@ -65,48 +65,27 @@ function createMainCard() {
       ),
     );
 
-  if (isLoggedIn) {
-    smartEmailManagerSection.addWidget(
-      CardService.newButtonSet()
-        .addButton(
-          CardService.newTextButton()
-            .setText("View settings")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("showSmartEmailManager"),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Check connections")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onCheckConnections"),
-            ),
-        ),
-    );
-  } else {
-    smartEmailManagerSection.addWidget(
-      CardService.newButtonSet()
-        .addButton(
-          CardService.newTextButton()
-            .setText("Login to MongoDB")
-            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-            .setBackgroundColor("#0F9D58")
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onLoginToMongoDB"),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Deploy / Verify")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("showSmartEmailManager"),
-            ),
-        ),
-    );
-  }
+  smartEmailManagerSection.addWidget(
+    CardService.newButtonSet()
+      .addButton(
+        isLoggedIn 
+          ? CardService.newTextButton()
+              .setText("View settings")
+              .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+              .setOnClickAction(CardService.newAction().setFunctionName("showSmartEmailManager"))
+          : CardService.newTextButton()
+              .setText("Login to MongoDB")
+              .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+              .setBackgroundColor("#0F9D58")
+              .setOnClickAction(CardService.newAction().setFunctionName("onLoginToMongoDB"))
+      )
+      .addButton(
+        CardService.newTextButton()
+          .setText("Deploy / Verify")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(CardService.newAction().setFunctionName("showSmartEmailManager"))
+      )
+  );
 
   cardBuilder.addSection(smartEmailManagerSection);
 
