@@ -4,8 +4,7 @@
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "urlFetchWhitelist": [
-    "https://smart-email-manager-agent-zlcyhbxgya-uc.a.run.app/",
-    "https://smart-email-manager-agent-983993789043.us-central1.run.app/",
+    "https://*.run.app/",
     "https://run.googleapis.com/"
   ],
   "oauthScopes": [
@@ -20,7 +19,7 @@
   ],
   "addOns": {
     "common": {
-      "name": "​",
+      "name": "Rapid Agent Gmail Suite",
       "logoUrl": "https://www.gstatic.com/images/branding/product/1x/translate_24dp.png",
       "useLocaleFromApp": true,
       "homepageTrigger": {
