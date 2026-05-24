@@ -4,7 +4,7 @@
 
 function getCloudRunUrl() {
   const url = PropertiesService.getScriptProperties().getProperty("CLOUD_RUN_URL");
-  return url || "https://smart-email-manager-agent-xxxxxx.a.run.app"; // Fallback placeholder
+  return url || "https://smart-email-manager-agent-zlcyhbxgya-uc.a.run.app";
 }
 
 function onHomepage(e: any) {
@@ -95,6 +95,14 @@ function createMainCard() {
             .setBackgroundColor("#0F9D58")
             .setOnClickAction(
               CardService.newAction().setFunctionName("onLoginToMongoDB"),
+            ),
+        )
+        .addButton(
+          CardService.newTextButton()
+            .setText("Deploy / Verify")
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("showSmartEmailManager"),
             ),
         ),
     );

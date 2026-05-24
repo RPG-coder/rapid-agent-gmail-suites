@@ -22,7 +22,15 @@ The Gmail Add-on has already provided your preferred region and a setup token.
 - **Selected Region**: `$CHOSEN_REGION`
 - **Setup Token**: `$SETUP_TOKEN`
 
-## Step 2: Build and Deploy
+## Step 2: Initialize Submodules
+
+Ensure the agent code is correctly pulled from the submodule:
+
+```bash
+git submodule update --init --recursive
+```
+
+## Step 3: Build and Deploy
 
 Navigate to the agent directory and run the deployment script. The script will use the region you selected in the Gmail Add-on.
 
@@ -47,7 +55,7 @@ gcloud run deploy smart-email-manager-agent \
   --port 8080
 ```
 
-## Step 3: Verify Deployment
+## Step 4: Verify Deployment
 
 Once the deployment is successful, return to your Gmail Sidebar and click the **"Verify Deployment"** button. The add-on will automatically find your new service in the `$CHOSEN_REGION` region and connect to it.
 
