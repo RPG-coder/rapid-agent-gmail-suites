@@ -46,7 +46,7 @@ function createSmartEmailManagerCard(
     .setHeader("GCP Deployment")
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<font color="#999999">Select your preferred region and deploy the agent to Google Cloud Platform.</font>'
+        '<font color="#999999">Select your region and deploy. If auto-verify fails, paste your Service URL below.</font>'
       )
     )
     .addWidget(
@@ -59,6 +59,12 @@ function createSmartEmailManagerCard(
         .addItem("Europe West (Belgium)", "europe-west1", false)
         .addItem("Asia East (Taiwan)", "asia-east1", false)
         .addItem("Australia Southeast (Sydney)", "australia-southeast1", false)
+    )
+    .addWidget(
+      CardService.newTextInput()
+        .setFieldName("manual_service_url")
+        .setTitle("Manual Service URL (Optional)")
+        .setHint("https://...a.run.app")
     )
     .addWidget(
       CardService.newButtonSet()
@@ -256,11 +262,23 @@ function onDeployGCPSEM(e: any) {
  */
 function onVerifyDeploymentSEM(e: any) {
   const selectedRegion = e.formInput.region || "us-central1";
+  const manualUrl = e.formInput.manual_service_url;
   const accessToken = ScriptApp.getOAuthToken();
   
+  // 1. Check for manual URL first (Bypass for 403 error)
+  if (manualUrl && manualUrl.startsWith("https://")) {
+    PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", manualUrl);
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().updateCard(
+        createSmartEmailManagerCard("Success", new Date().toLocaleString(), "0", "N/A", "✅ URL saved manually! Now you can Login to MongoDB from the Home screen.")
+      ))
+      .setNotification(CardService.newNotification().setText("Service URL updated manually!"))
+      .build();
+  }
+
   try {
-    // 1. Get Project ID
-    const projectId = "project-9c87d17f-07e0-465a-ace"; 
+    // 1. Use Project Number (more reliable for cross-project OAuth)
+    const projectId = "983993789043"; 
     
     // 2. Query Cloud Run Admin API
     const url = `https://run.googleapis.com/v1/projects/${projectId}/locations/${selectedRegion}/services`;
@@ -295,9 +313,17 @@ function onVerifyDeploymentSEM(e: any) {
       }
     } else {
       const errorBody = response.getContentText();
-      console.error("Cloud Run API Error:", errorBody);
+      console.error("Cloud Run API Error (" + response.getResponseCode() + "):", errorBody);
+      
+      // If we get a 403, it's almost certainly IAM or the wrong Project Number
+      if (response.getResponseCode() === 403) {
+        return CardService.newActionResponseBuilder()
+          .setNotification(CardService.newNotification().setText("Verification Error (403): Ensure 'Cloud Run Admin API' is enabled and you have 'Cloud Run Viewer' role on project 983993789043."))
+          .build();
+      }
+      
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Cloud Run API Error (403): Please ensure you have 'Cloud Run Viewer' permissions in the GCP project."))
+        .setNotification(CardService.newNotification().setText("Error querying Cloud Run API: " + response.getResponseCode()))
         .build();
     }
   } catch (err) {
