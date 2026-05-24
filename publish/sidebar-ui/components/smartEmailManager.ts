@@ -210,7 +210,7 @@ function onDeployGCPSEM(e: any) {
   const userEmailToken = Utilities.base64Encode(userEmail);
   
   // URL to launch Cloud Shell with tutorial and environment variables
-  const repoUrl = "https://github.com/rahulgputcha/smart-email-manager"; // Placeholder repo URL
+  const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites"; 
   const cloudShellUrl = "https://shell.cloud.google.com/cloudshell/editor" +
     "?cloudshell_git_repo=" + encodeURIComponent(repoUrl) +
     "&cloudshell_tutorial=tutorial.md" +
@@ -230,10 +230,8 @@ function onVerifyDeploymentSEM(e: any) {
   const accessToken = ScriptApp.getOAuthToken();
   
   try {
-    // 1. Get Project ID (This usually requires another step or assuming the current project)
-    // For this implementation, we will try to list projects if we have scope, 
-    // or use a default one if set in script properties.
-    const projectId = "google-rapid-agent-hackathon"; // Placeholder Project ID
+    // 1. Get Project ID
+    const projectId = "project-9c87d17f-07e0-465a-ace"; 
     
     // 2. Query Cloud Run Admin API
     const url = `https://run.googleapis.com/v1/projects/${projectId}/locations/${selectedRegion}/services`;
@@ -257,13 +255,13 @@ function onVerifyDeploymentSEM(e: any) {
         
         return CardService.newActionResponseBuilder()
           .setNavigation(CardService.newNavigation().updateCard(
-            createSmartEmailManagerCard("Success", new Date().toLocaleString(), "0", "N/A", "✅ Service found: " + serviceUrl)
+            createSmartEmailManagerCard("Success", new Date().toLocaleString(), "0", "N/A", "✅ Service verified! Now you can Login to MongoDB from the Home screen.")
           ))
           .setNotification(CardService.newNotification().setText("Cloud Run service verified successfully!"))
           .build();
       } else {
         return CardService.newActionResponseBuilder()
-          .setNotification(CardService.newNotification().setText("No matching Cloud Run service found in " + selectedRegion))
+          .setNotification(CardService.newNotification().setText("No matching Cloud Run service found in " + selectedRegion + ". Make sure you have deployed it first."))
           .build();
       }
     } else {
