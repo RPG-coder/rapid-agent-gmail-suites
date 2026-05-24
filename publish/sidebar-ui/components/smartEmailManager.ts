@@ -215,7 +215,7 @@ function onDeployGCPSEM(e: any) {
     "?cloudshell_git_repo=" + encodeURIComponent(repoUrl) +
     "&cloudshell_tutorial=tutorial.md" +
     "&cloudshell_env=CHOSEN_REGION=" + encodeURIComponent(selectedRegion) +
-    "&cloudshell_env=SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
+    ",SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
 
   return CardService.newActionResponseBuilder()
     .setOpenLink(CardService.newOpenLink().setUrl(cloudShellUrl))
@@ -265,9 +265,10 @@ function onVerifyDeploymentSEM(e: any) {
           .build();
       }
     } else {
-      console.error("Cloud Run API Error:", response.getContentText());
+      const errorBody = response.getContentText();
+      console.error("Cloud Run API Error:", errorBody);
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Error querying Cloud Run API: " + response.getResponseCode()))
+        .setNotification(CardService.newNotification().setText("Cloud Run API Error (403): Please ensure you have 'Cloud Run Viewer' permissions in the GCP project."))
         .build();
     }
   } catch (err) {
