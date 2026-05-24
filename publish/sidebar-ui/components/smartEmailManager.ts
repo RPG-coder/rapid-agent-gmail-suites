@@ -133,7 +133,7 @@ function createSmartEmailManagerCard(
           CardService.newTextButton()
             .setText("Register to MongoDB")
             .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(CardService.newAction().setFunctionName("onRegisterToMongoDB"))
+            .setOpenLink(CardService.newOpenLink().setUrl("https://www.mongodb.com/cloud/atlas/register"))
         )
     );
   }
