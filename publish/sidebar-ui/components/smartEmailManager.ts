@@ -209,16 +209,45 @@ function onDeployGCPSEM(e: any) {
   const userEmail = Session.getActiveUser().getEmail();
   const userEmailToken = Utilities.base64Encode(userEmail);
   
-  // URL to launch Cloud Shell with tutorial and environment variables
-  const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites"; 
-  const cloudShellUrl = "https://console.cloud.google.com/cloudshell/editor" +
-    "?cloudshell_git_repo=" + encodeURIComponent(repoUrl) +
-    "&cloudshell_tutorial=tutorial.md" +
-    "&cloudshell_env=CHOSEN_REGION=" + encodeURIComponent(selectedRegion) +
-    "&cloudshell_env=SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
+  const setupCommand = `export CHOSEN_REGION="${selectedRegion}"\nexport SETUP_TOKEN="${userEmailToken}"`;
+  
+  const card = CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader().setTitle("Step 1: Copy Setup Command"))
+    .addSection(
+      CardService.newCardSection()
+        .addWidget(
+          CardService.newTextParagraph().setText(
+            "Copy the command below. You will need to paste it into the Cloud Shell terminal once it opens."
+          )
+        )
+        .addWidget(
+          CardService.newTextInput()
+            .setFieldName("setup_cmd")
+            .setTitle("Setup Command")
+            .setValue(setupCommand)
+            .setMultiline(true)
+        )
+        .addWidget(
+          CardService.newButtonSet()
+            .addButton(
+              CardService.newTextButton()
+                .setText("Step 2: Open Cloud Shell")
+                .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+                .setBackgroundColor("#4285F4")
+                .setOpenLink(
+                  CardService.newOpenLink().setUrl(
+                    "https://console.cloud.google.com/cloudshell/editor" +
+                    "?cloudshell_git_repo=" + encodeURIComponent("https://github.com/RPG-coder/rapid-agent-gmail-suites") +
+                    "&cloudshell_tutorial=tutorial.md"
+                  )
+                )
+            )
+        )
+    )
+    .build();
 
   return CardService.newActionResponseBuilder()
-    .setOpenLink(CardService.newOpenLink().setUrl(cloudShellUrl))
+    .setNavigation(CardService.newNavigation().pushCard(card))
     .build();
 }
 

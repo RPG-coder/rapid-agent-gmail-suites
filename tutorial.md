@@ -2,9 +2,21 @@
 
 Welcome to the deployment tutorial for the Smart Email Manager Agent! This guide will help you deploy your agent to Google Cloud Run in your selected region.
 
-## Prerequisites
+## Step 1: Setup Environment
 
-1.  **Project ID**: Ensure you are in the correct Google Cloud project.
+Before we begin, you need to set up your environment variables. 
+
+1.  **Paste Command**: Paste the **Setup Command** you copied from the Gmail Sidebar into the terminal below and press **Enter**.
+
+    *This will set your `$CHOSEN_REGION` and `$SETUP_TOKEN` for the rest of the tutorial.*
+
+2.  **Verify**: You can verify the variables were set by running:
+    ```bash
+    echo "Region: $CHOSEN_REGION"
+    echo "Token: $SETUP_TOKEN"
+    ```
+
+3.  **Establish Project Context**: Ensure you are in the correct Google Cloud project.
     <walkthrough-project-setup></walkthrough-project-setup>
 
     Run the following command to set your project context (replace `<YOUR_PROJECT_ID>` with your actual Project ID):
@@ -13,7 +25,7 @@ Welcome to the deployment tutorial for the Smart Email Manager Agent! This guide
     gcloud config set project <YOUR_PROJECT_ID>
     ```
 
-2.  **Enable APIs**: Run the following command to enable the necessary APIs.
+4.  **Enable APIs**: Run the following command to enable the necessary APIs.
 
 ```bash
 gcloud services enable run.googleapis.com \
@@ -21,14 +33,7 @@ gcloud services enable run.googleapis.com \
     artifactregistry.googleapis.com
 ```
 
-## Step 1: Prepare Environment
-
-The Gmail Add-on has already provided your preferred region and a setup token.
-
-- **Selected Region**: `$CHOSEN_REGION`
-- **Setup Token**: `$SETUP_TOKEN`
-
-Run the following to prepare your environment and ensure your Gmail account has the necessary permissions to verify the deployment later:
+5.  **Grant Permissions**: Run the following to ensure your Gmail account has the necessary permissions to verify the deployment later:
 
 ```bash
 USER_EMAIL=$(echo $SETUP_TOKEN | base64 --decode)
