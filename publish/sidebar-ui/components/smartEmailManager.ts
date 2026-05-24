@@ -211,11 +211,11 @@ function onDeployGCPSEM(e: any) {
   
   // URL to launch Cloud Shell with tutorial and environment variables
   const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites"; 
-  const cloudShellUrl = "https://shell.cloud.google.com/cloudshell/editor" +
+  const cloudShellUrl = "https://console.cloud.google.com/cloudshell/editor" +
     "?cloudshell_git_repo=" + encodeURIComponent(repoUrl) +
     "&cloudshell_tutorial=tutorial.md" +
     "&cloudshell_env=CHOSEN_REGION=" + encodeURIComponent(selectedRegion) +
-    ",SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
+    "&cloudshell_env=SETUP_TOKEN=" + encodeURIComponent(userEmailToken);
 
   return CardService.newActionResponseBuilder()
     .setOpenLink(CardService.newOpenLink().setUrl(cloudShellUrl))
