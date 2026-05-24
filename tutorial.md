@@ -47,7 +47,7 @@ cd agents/smart-email-manager
 Now, execute the deployment command:
 
 ```bash
-gcloud builds submit --tag gcr.io/$(gcloud config get-value project)/smart-email-manager-agent --dockerfile deploy/Dockerfile .
+gcloud builds submit --tag gcr.io/$(gcloud config get-value project)/smart-email-manager-agent .
 ```
 
 After the build completes, deploy to Cloud Run:
