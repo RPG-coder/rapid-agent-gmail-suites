@@ -89,24 +89,13 @@ function createMainCard() {
     );
   } else if (!isLoggedIn) {
     // State 2: Deployed but not authenticated
-    buttonSet
-      .addButton(
-        CardService.newTextButton()
-          .setText("Login to MongoDB")
-          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-          .setBackgroundColor("#0F9D58")
-          .setOnClickAction(
-            CardService.newAction().setFunctionName("onLoginToMongoDB"),
-          ),
-      )
-      .addButton(
-        CardService.newTextButton()
-          .setText("Deployment Settings")
-          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-          .setOnClickAction(
-            CardService.newAction().setFunctionName("showSEMDeployment"),
-          ),
-      );
+    buttonSet.addButton(
+      CardService.newTextButton()
+        .setText("Login to MongoDB")
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor("#0F9D58")
+        .setOnClickAction(CardService.newAction().setFunctionName("onLoginToMongoDB"))
+    );
   } else {
     // State 3: Fully Operational (Deployed AND Logged In)
     buttonSet
