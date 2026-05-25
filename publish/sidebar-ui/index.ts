@@ -190,7 +190,7 @@ function createMainCard() {
 function onLoginToMongoDB(e: any) {
   const userEmail = Session.getActiveUser().getEmail();
   const cloudRunUrl = getCloudRunUrl();
-  const url = `${cloudRunUrl}/mongodb/login?user_email=${encodeURIComponent(userEmail)}`;
+  const url = `${cloudRunUrl}/mongodb/login?user_email=${encodeURIComponent(userEmail)}&base_url=${encodeURIComponent(cloudRunUrl)}`;
   try {
     const response = UrlFetchApp.fetch(url);
     const data = JSON.parse(response.getContentText());
