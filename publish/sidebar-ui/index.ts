@@ -3,8 +3,9 @@
  */
 
 function getCloudRunUrl() {
-  const url = PropertiesService.getScriptProperties().getProperty("CLOUD_RUN_URL");
-  return url || "https://smart-email-manager-agent-zlcyhbxgya-uc.a.run.app";
+  const url =
+    PropertiesService.getScriptProperties().getProperty("CLOUD_RUN_URL");
+  return url || "https://www.putchakai.com/gmail-addon/404";
 }
 
 function onHomepage(e: any) {
@@ -21,12 +22,18 @@ function onGmailMessage(e: any) {
 function isUserLoggedInMongoDB() {
   const userEmail = Session.getActiveUser().getEmail();
   const cloudRunUrl = getCloudRunUrl();
+
+  // If not deployed yet, don't bother fetching
+  if (cloudRunUrl.includes("putchakai.com")) return false;
+
   const url = `${cloudRunUrl}/mongodb/status?user_email=${encodeURIComponent(userEmail)}`;
   try {
-    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const response = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true,
+    });
     if (response.getResponseCode() === 200) {
       const data = JSON.parse(response.getContentText());
-      return data.logged_in;
+      return !!data.logged_in;
     }
   } catch (e) {
     console.error("Error checking MongoDB status:", e);
@@ -39,7 +46,9 @@ function isUserLoggedInMongoDB() {
  */
 function createMainCard() {
   const cardBuilder = CardService.newCardBuilder().setName("MAIN");
-  const isLoggedIn = isUserLoggedInMongoDB();
+  const cloudRunUrl = getCloudRunUrl();
+  const isDeployed = !cloudRunUrl.includes("putchakai.com");
+  const isLoggedIn = isDeployed && isUserLoggedInMongoDB();
 
   // Header/Title Section
   const headerSection = CardService.newCardSection()
@@ -50,7 +59,7 @@ function createMainCard() {
     )
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<font color="#4D4D4D">Below are the feature agents and their setting that are part of the Gmail suite add-on.</font>',
+        '<font color="#4D4D4D">Below are the feature agents and their settings that are part of the Gmail suite add-on.</font>',
       ),
     );
 
@@ -65,28 +74,61 @@ function createMainCard() {
       ),
     );
 
-  smartEmailManagerSection.addWidget(
-    CardService.newButtonSet()
+  const buttonSet = CardService.newButtonSet();
+
+  if (!isDeployed) {
+    // State 1: Not Deployed
+    buttonSet.addButton(
+      CardService.newTextButton()
+        .setText("Deploy / Verify")
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor("#4285F4")
+        .setOnClickAction(
+          CardService.newAction().setFunctionName("showSmartEmailManager"),
+        ),
+    );
+  } else if (!isLoggedIn) {
+    // State 2: Deployed but not authenticated
+    buttonSet
       .addButton(
-        isLoggedIn 
-          ? CardService.newTextButton()
-              .setText("View settings")
-              .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-              .setOnClickAction(CardService.newAction().setFunctionName("showSmartEmailManager"))
-          : CardService.newTextButton()
-              .setText("Login to MongoDB")
-              .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-              .setBackgroundColor("#0F9D58")
-              .setOnClickAction(CardService.newAction().setFunctionName("onLoginToMongoDB"))
+        CardService.newTextButton()
+          .setText("Login to MongoDB")
+          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+          .setBackgroundColor("#0F9D58")
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("onLoginToMongoDB"),
+          ),
       )
       .addButton(
         CardService.newTextButton()
-          .setText("Deploy / Verify")
+          .setText("Settings")
           .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-          .setOnClickAction(CardService.newAction().setFunctionName("showSmartEmailManager"))
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("showSmartEmailManager"),
+          ),
+      );
+  } else {
+    // State 3: Fully Operational
+    buttonSet
+      .addButton(
+        CardService.newTextButton()
+          .setText("View settings")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("showSmartEmailManager"),
+          ),
       )
-  );
+      .addButton(
+        CardService.newTextButton()
+          .setText("Check connection")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("onCheckConnections"),
+          ),
+      );
+  }
 
+  smartEmailManagerSection.addWidget(buttonSet);
   cardBuilder.addSection(smartEmailManagerSection);
 
   // Inbox Analytics Section
@@ -112,7 +154,9 @@ function createMainCard() {
             .setText("Ask Mailbox Questions")
             .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
             .setOnClickAction(
-              CardService.newAction().setFunctionName("showAskMailboxQuestions"),
+              CardService.newAction().setFunctionName(
+                "showAskMailboxQuestions",
+              ),
             ),
         )
         .addButton(
@@ -142,7 +186,9 @@ function createMainCard() {
             .setText("View settings")
             .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
             .setOnClickAction(
-              CardService.newAction().setFunctionName("showSelfArizingEmailManager"),
+              CardService.newAction().setFunctionName(
+                "showSelfArizingEmailManager",
+              ),
             ),
         )
         .addButton(
@@ -203,7 +249,11 @@ function onLoginToMongoDB(e: any) {
     console.error("Error initiating MongoDB login:", e);
   }
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Failed to initiate MongoDB login."))
+    .setNotification(
+      CardService.newNotification().setText(
+        "Failed to initiate MongoDB login.",
+      ),
+    )
     .build();
 }
 
@@ -226,7 +276,11 @@ function onRegisterToMongoDB(e: any) {
     console.error("Error initiating MongoDB registration:", e);
   }
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Failed to initiate MongoDB registration."))
+    .setNotification(
+      CardService.newNotification().setText(
+        "Failed to initiate MongoDB registration.",
+      ),
+    )
     .build();
 }
 
@@ -246,7 +300,9 @@ function onCheckConnections(e: any) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(createMainCard()))
     .setNotification(
-      CardService.newNotification().setText("Connections checked and UI updated."),
+      CardService.newNotification().setText(
+        "Connections checked and UI updated.",
+      ),
     )
     .build();
 }
@@ -264,8 +320,11 @@ function onAskQuestions(e: any) {
  * Do not delete this; it ensures getOAuthToken() has enough power.
  */
 function forceGCPAuth() {
-  UrlFetchApp.fetch("https://run.googleapis.com/v1/projects/project-9c87d17f-07e0-465a-ace/locations/us-central1/services", {
-    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
+  UrlFetchApp.fetch(
+    "https://run.googleapis.com/v1/projects/project-9c87d17f-07e0-465a-ace/locations/us-central1/services",
+    {
+      headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+      muteHttpExceptions: true,
+    },
+  );
 }
