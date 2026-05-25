@@ -67,7 +67,6 @@ function createSEMDeploymentCard() {
   cardBuilder.addSection(
     CardService.newCardSection()
       .setHeader("Step 3: Verify Deployment")
-      .addWidget(CardService.newDivider())
       .addWidget(
         CardService.newTextParagraph().setText(
           '<font color="#999999">Once deployed, click verify to link your agent to this add-on.</font>',
