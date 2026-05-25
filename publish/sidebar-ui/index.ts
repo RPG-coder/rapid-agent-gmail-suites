@@ -80,11 +80,11 @@ function createMainCard() {
     // State 1: Not Deployed
     buttonSet.addButton(
       CardService.newTextButton()
-        .setText("Deploy / Verify")
+        .setText("Deploy Agent")
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
         .setBackgroundColor("#4285F4")
         .setOnClickAction(
-          CardService.newAction().setFunctionName("showSmartEmailManager"),
+          CardService.newAction().setFunctionName("showSEMDeployment"),
         ),
     );
   } else if (!isLoggedIn) {
@@ -101,14 +101,14 @@ function createMainCard() {
       )
       .addButton(
         CardService.newTextButton()
-          .setText("Settings")
+          .setText("Deployment Settings")
           .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
           .setOnClickAction(
-            CardService.newAction().setFunctionName("showSmartEmailManager"),
+            CardService.newAction().setFunctionName("showSEMDeployment"),
           ),
       );
   } else {
-    // State 3: Fully Operational
+    // State 3: Fully Operational (Deployed AND Logged In)
     buttonSet
       .addButton(
         CardService.newTextButton()
@@ -213,7 +213,7 @@ function createMainCard() {
     .addWidget(
       CardService.newDecoratedText()
         .setBottomLabel(
-          'Website: <a href="https://www.rahulgputcha.com">www.rahulgputcha.com</a><br/>Developer Email: rahulgputcha@gmail.com',
+          'Website: <a href="https://www.putchakai.com">https://www.putchakai.com</a><br/>Developer Email: rahulgputcha@gmail.com',
         )
         .setWrapText(true),
     )
