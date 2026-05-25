@@ -217,27 +217,132 @@ function onCheckConnectionSEM(e: any) {
  * Action handler for syncing to MongoDB.
  */
 function onSyncMongoDBSEM(e: any) {
-  const now = new Date().toLocaleString();
-  return CardService.newActionResponseBuilder()
-    .setNavigation(
-      CardService.newNavigation().updateCard(
-        createSmartEmailManagerCard("Success", now, "100", now),
-      ),
-    )
-    .setNotification(
-      CardService.newNotification().setText("Synced to MongoDB successfully."),
-    )
-    .build();
+  const userEmail = Session.getActiveUser().getEmail();
+  const cloudRunUrl = getCloudRunUrl();
+  
+  if (cloudRunUrl.includes("putchakai.com")) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Please deploy the agent first."))
+      .build();
+  }
+
+  try {
+    // 1. Get last sync timestamp
+    const lastSyncUrl = `${cloudRunUrl}/mongodb/last_sync?user_email=${encodeURIComponent(userEmail)}`;
+    const lastSyncResponse = UrlFetchApp.fetch(lastSyncUrl);
+    const lastSyncData = JSON.parse(lastSyncResponse.getContentText());
+    let lastSync = lastSyncData.last_sync;
+
+    // 2. Search for emails
+    let query = "";
+    if (lastSync) {
+      // Gmail search uses seconds for 'after'
+      const afterTimestamp = Math.floor(new Date(lastSync).getTime() / 1000);
+      query = `after:${afterTimestamp}`;
+    }
+
+    const threads = GmailApp.search(query, 0, 50); // Limit to 50 threads for now to avoid timeouts
+    const emailsToSync = [];
+
+    threads.forEach(thread => {
+      const messages = thread.getMessages();
+      messages.forEach(msg => {
+        emailsToSync.push({
+          message_id: msg.getId(),
+          subject: msg.getSubject(),
+          sender: msg.getFrom(),
+          date: msg.getDate().toISOString(),
+          body: msg.getPlainBody()
+        });
+      });
+    });
+
+    if (emailsToSync.length === 0) {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("No new emails to sync."))
+        .build();
+    }
+
+    // 3. Send to Cloud Run in batches
+    const syncUrl = `${cloudRunUrl}/mongodb/sync?user_email=${encodeURIComponent(userEmail)}`;
+    const batchSize = 10;
+    let syncedCount = 0;
+
+    for (let i = 0; i < emailsToSync.length; i += batchSize) {
+      const batch = emailsToSync.slice(i, i + batchSize);
+      const options = {
+        method: "post" as any,
+        contentType: "application/json",
+        payload: JSON.stringify(batch),
+        muteHttpExceptions: true
+      };
+      const response = UrlFetchApp.fetch(syncUrl, options);
+      if (response.getResponseCode() === 200) {
+        syncedCount += batch.length;
+      }
+    }
+
+    const now = new Date().toLocaleString();
+    return CardService.newActionResponseBuilder()
+      .setNavigation(
+        CardService.newNavigation().updateCard(
+          createSmartEmailManagerCard("Success", now, "100", now, `Successfully synced ${syncedCount} emails.`),
+        ),
+      )
+      .setNotification(
+        CardService.newNotification().setText(`Synced ${syncedCount} emails to MongoDB.`),
+      )
+      .build();
+
+  } catch (err) {
+    console.error("Sync Error:", err);
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Failed to sync emails: " + err.toString()))
+      .build();
+  }
 }
 
 /**
  * Navigation function to show the Smart Email Manager card.
  */
 function showSmartEmailManager(e: any) {
+  const userEmail = Session.getActiveUser().getEmail();
+  const cloudRunUrl = getCloudRunUrl();
+  let syncTimestamp = "N/A";
+  let connectionStatus = "Not verified";
+  let connectionTimestamp = "N/A";
+
+  if (!cloudRunUrl.includes("putchakai.com")) {
+    try {
+      // Check connection status
+      const statusUrl = `${cloudRunUrl}/mongodb/status?user_email=${encodeURIComponent(userEmail)}`;
+      const statusResponse = UrlFetchApp.fetch(statusUrl, { muteHttpExceptions: true });
+      if (statusResponse.getResponseCode() === 200) {
+        const statusData = JSON.parse(statusResponse.getContentText());
+        if (statusData.logged_in) {
+          connectionStatus = "Success";
+          connectionTimestamp = new Date().toLocaleString(); // Or get from DB if stored
+        }
+      }
+
+      // Get last sync timestamp
+      const lastSyncUrl = `${cloudRunUrl}/mongodb/last_sync?user_email=${encodeURIComponent(userEmail)}`;
+      const lastSyncResponse = UrlFetchApp.fetch(lastSyncUrl, { muteHttpExceptions: true });
+      if (lastSyncResponse.getResponseCode() === 200) {
+        const lastSyncData = JSON.parse(lastSyncResponse.getContentText());
+        if (lastSyncData.last_sync) {
+          syncTimestamp = new Date(lastSyncData.last_sync).toLocaleString();
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching SEM status:", err);
+    }
+  }
+
   return CardService.newActionResponseBuilder()
     .setNavigation(
       CardService.newNavigation().pushCard(
-        createSmartEmailManagerCard("Not verified", "N/A", "0", "N/A"),
+        createSmartEmailManagerCard(connectionStatus, connectionTimestamp, syncTimestamp !== "N/A" ? "100" : "0", syncTimestamp),
       ),
     )
     .build();
