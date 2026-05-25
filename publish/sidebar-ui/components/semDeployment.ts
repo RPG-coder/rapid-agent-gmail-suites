@@ -165,6 +165,82 @@ function onDeployGCPSEM(e: any) {
 }
 
 /**
+ * Creates a dedicated screen for Verification Results.
+ */
+function createVerifyDeploymentResultCard(isSuccess: boolean, detail: string = "") {
+  const cardBuilder = CardService.newCardBuilder().setName("VERIFY_RESULT");
+
+  const statusText = isSuccess 
+    ? '<b><font color="#0F9D58">Success</font></b>' 
+    : '<b><font color="#DB4437">connection failed</font></b>';
+  
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText(statusText))
+    .addWidget(CardService.newTextParagraph().setText(detail || (isSuccess ? "Your agent is correctly linked and ready." : "We couldn't find the smart-email-manager-agent in your project.")));
+
+  if (isSuccess) {
+    // Step 1: Register
+    section.addWidget(CardService.newTextParagraph().setText("<b>Step 1: Create Database</b>"));
+    section.addWidget(
+      CardService.newTextButton()
+        .setText("Register to MongoDB Atlas")
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOpenLink(CardService.newOpenLink().setUrl("https://www.mongodb.com/cloud/atlas/register"))
+    );
+
+    section.addWidget(CardService.newTextParagraph().setText('<div style="text-align: center;"><small>— AND / OR —</small></div>'));
+
+    // Step 2: Login
+    section.addWidget(CardService.newTextParagraph().setText("<b>Step 2: Connect Agent</b>"));
+    section.addWidget(
+      CardService.newTextButton()
+        .setText("Login to MongoDB")
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor("#0F9D58")
+        .setOnClickAction(CardService.newAction().setFunctionName("onLoginToMongoDB"))
+    );
+
+    section.addWidget(CardService.newDivider());
+
+    // Step 3: Return
+    section.addWidget(CardService.newTextParagraph().setText("<b>Step 3: Finalize</b>"));
+    section.addWidget(
+      CardService.newTextButton()
+        .setText("Return to Home")
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOnClickAction(CardService.newAction().setFunctionName("onReturnToRoot"))
+    );
+  } else {
+    section.addWidget(
+      CardService.newButtonSet().addButton(
+        CardService.newTextButton()
+          .setText("Try Again")
+          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+          .setBackgroundColor("#4285F4")
+          .setOnClickAction(CardService.newAction().setFunctionName("showSEMDeployment"))
+      ).addButton(
+        CardService.newTextButton()
+          .setText("Return to Home")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(CardService.newAction().setFunctionName("onReturnToRoot"))
+      )
+    );
+  }
+
+  cardBuilder.addSection(section);
+  return cardBuilder.build();
+}
+
+/**
+ * Utility to pop back to the MAIN home card.
+ */
+function onReturnToRoot(e: any) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().popToRoot())
+    .build();
+}
+
+/**
  * Action handler for Verify Deployment.
  */
 function onVerifyDeploymentSEM(e: any) {
@@ -172,20 +248,12 @@ function onVerifyDeploymentSEM(e: any) {
   const manualUrl = e.formInput.manual_service_url;
   const accessToken = ScriptApp.getOAuthToken();
 
+  // 1. Check for manual URL first
   if (manualUrl && manualUrl.startsWith("https://")) {
-    PropertiesService.getScriptProperties().setProperty(
-      "CLOUD_RUN_URL",
-      manualUrl,
-    );
+    PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", manualUrl);
     return CardService.newActionResponseBuilder()
-      .setNavigation(
-        CardService.newNavigation().updateCard(createSEMDeploymentCard()),
-      )
-      .setNotification(
-        CardService.newNotification().setText(
-          "Service URL updated manually! Now you can Login to MongoDB from the Home screen.",
-        ),
-      )
+      .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(true, "✅ Service URL updated manually. Now you can Login to MongoDB from the Home screen.")))
+      .setNotification(CardService.newNotification().setText("Manual verification successful!"))
       .build();
   }
 
@@ -200,59 +268,36 @@ function onVerifyDeploymentSEM(e: any) {
     if (response.getResponseCode() === 200) {
       const data = JSON.parse(response.getContentText());
       const services = data.items || [];
+      
+      // Regex check for smart-email-manager-agent
       const serviceRegex = /smart-email-manager-agent/i;
-      const matchedService = services.find((s: any) =>
-        serviceRegex.test(s.metadata.name),
-      );
+      const matchedService = services.find((s: any) => serviceRegex.test(s.metadata.name));
 
       if (matchedService) {
         const serviceUrl = matchedService.status.url;
-        PropertiesService.getScriptProperties().setProperty(
-          "CLOUD_RUN_URL",
-          serviceUrl,
-        );
+        PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", serviceUrl);
 
         return CardService.newActionResponseBuilder()
-          .setNavigation(
-            CardService.newNavigation().updateCard(createSEMDeploymentCard()),
-          )
-          .setNotification(
-            CardService.newNotification().setText(
-              "Cloud Run service verified successfully! Now you can Login to MongoDB from the Home screen.",
-            ),
-          )
+          .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(true, "✅ Agent discovered automatically! Service URL: " + serviceUrl)))
           .build();
       } else {
         return CardService.newActionResponseBuilder()
-          .setNotification(
-            CardService.newNotification().setText(
-              "No matching Cloud Run service found in " +
-                selectedRegion +
-                ". Make sure you have deployed it first.",
-            ),
-          )
+          .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "No matching Cloud Run service found in " + selectedRegion + ".")))
           .build();
       }
     } else {
+      let errorMsg = "Error querying Cloud Run API: " + response.getResponseCode();
       if (response.getResponseCode() === 403) {
-        return CardService.newActionResponseBuilder().setNotification(
-          CardService.newNotification().setText(
-            "Verification Error (403): Ensure 'Cloud Run Admin API' is enabled and you have 'Cloud Run Viewer' role.",
-          ),
-        );
+        errorMsg = "Verification Error (403): Insufficient IAM permissions.";
       }
-      return CardService.newActionResponseBuilder().setNotification(
-        CardService.newNotification().setText(
-          "Error querying Cloud Run API: " + response.getResponseCode(),
-        ),
-      );
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, errorMsg)))
+        .build();
     }
   } catch (err) {
-    return CardService.newActionResponseBuilder().setNotification(
-      CardService.newNotification().setText(
-        "Verification failed: " + err.toString(),
-      ),
-    );
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "Verification failed: " + err.toString())))
+      .build();
   }
 }
 
