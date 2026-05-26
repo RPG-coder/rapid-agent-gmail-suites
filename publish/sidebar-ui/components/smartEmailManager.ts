@@ -82,27 +82,28 @@ function createSmartEmailManagerCard(
       ? `<br/><font color="#999999">${syncTimestamp}</font>`
       : "";
 
-  const manualWorkflowsSection = CardService.newCardSection()
-    .setHeader("Manual Workflows")
-    .addWidget(
-      CardService.newButtonSet()
-        .addButton(
-          CardService.newTextButton()
-            .setText("Check connection")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onCheckConnectionSEM"),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Update backend")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onUpdateBackendSEM"),
-            ),
-        ),
-    );
+  const manualWorkflowsSection =
+    CardService.newCardSection().setHeader("Manual Workflows");
+
+  manualWorkflowsSection.addWidget(
+    CardService.newButtonSet()
+      .addButton(
+        CardService.newTextButton()
+          .setText("Check connection")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("onCheckConnectionSEM"),
+          ),
+      )
+      .addButton(
+        CardService.newTextButton()
+          .setText("Update backend")
+          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+          .setOnClickAction(
+            CardService.newAction().setFunctionName("onUpdateBackendSEM"),
+          ),
+      ),
+  );
 
   manualWorkflowsSection
     .addWidget(
@@ -238,43 +239,57 @@ function onTriggerCloudBuildSEM(e: any) {
   const projectId = getGCPProjectId();
   if (projectId === "YOUR_PROJECT_ID") {
     return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText("Project ID not found. Please re-run verification from the deployment screen."))
+      .setNotification(
+        CardService.newNotification().setText(
+          "Project ID not found. Please re-run verification from the deployment screen.",
+        ),
+      )
       .build();
   }
   const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites";
-  
+
   // Cloud Build Trigger API
   const url = `https://cloudbuild.googleapis.com/v1/projects/${projectId}/builds`;
-  
+
   const buildRequest = {
-    "source": {
-      "gitSource": {
-        "url": repoUrl,
-        "dir": "agents/smart-email-manager",
-        "revision": "main"
-      }
+    source: {
+      gitSource: {
+        url: repoUrl,
+        dir: "agents/smart-email-manager",
+        revision: "main",
+      },
     },
-    "steps": [
+    steps: [
       {
-        "name": "gcr.io/cloud-builders/docker",
-        "args": ["build", "-t", `gcr.io/${projectId}/smart-email-manager-agent`, "."]
+        name: "gcr.io/cloud-builders/docker",
+        args: [
+          "build",
+          "-t",
+          `gcr.io/${projectId}/smart-email-manager-agent`,
+          ".",
+        ],
       },
       {
-        "name": "gcr.io/cloud-builders/docker",
-        "args": ["push", `gcr.io/${projectId}/smart-email-manager-agent`]
+        name: "gcr.io/cloud-builders/docker",
+        args: ["push", `gcr.io/${projectId}/smart-email-manager-agent`],
       },
       {
-        "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
-        "entrypoint": "gcloud",
-        "args": [
-          "run", "deploy", "smart-email-manager-agent",
-          "--image", `gcr.io/${projectId}/smart-email-manager-agent`,
-          "--region", "us-central1",
-          "--platform", "managed",
-          "--allow-unauthenticated"
-        ]
-      }
-    ]
+        name: "gcr.io/google.com/cloudsdktool/cloud-sdk",
+        entrypoint: "gcloud",
+        args: [
+          "run",
+          "deploy",
+          "smart-email-manager-agent",
+          "--image",
+          `gcr.io/${projectId}/smart-email-manager-agent`,
+          "--region",
+          "us-central1",
+          "--platform",
+          "managed",
+          "--allow-unauthenticated",
+        ],
+      },
+    ],
   };
 
   try {
@@ -283,12 +298,16 @@ function onTriggerCloudBuildSEM(e: any) {
       contentType: "application/json",
       headers: { Authorization: "Bearer " + accessToken },
       payload: JSON.stringify(buildRequest),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
     });
 
     if (response.getResponseCode() === 200) {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("🚀 Update initiated! Your backend is being rebuilt and redeployed. Please check back in 2-3 minutes."))
+        .setNotification(
+          CardService.newNotification().setText(
+            "🚀 Update initiated! Your backend is being rebuilt and redeployed. Please check back in 2-3 minutes.",
+          ),
+        )
         .build();
     } else {
       console.error("Cloud Build Error:", response.getContentText());
@@ -307,10 +326,12 @@ function onTriggerCloudBuildSEM(e: any) {
 function onSyncMongoDBSEM(e: any) {
   const userEmail = Session.getActiveUser().getEmail();
   const cloudRunUrl = getCloudRunUrl();
-  
+
   if (cloudRunUrl.includes("putchakai.com")) {
     return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText("Please deploy the agent first."))
+      .setNotification(
+        CardService.newNotification().setText("Please deploy the agent first."),
+      )
       .build();
   }
 
@@ -334,41 +355,56 @@ function onSyncMongoDBSEM(e: any) {
       }
     }
 
-    const threads = GmailApp.search(query, 0, 50); // Limit to 50 threads for now to avoid timeouts
+    const threads = GmailApp.search(query, 0, 15); // Reduce to 15 threads to avoid timeouts
     const emailsToSync = [];
+    const startTime = new Date().getTime();
+    const MAX_EXECUTION_TIME_MS = 210000; // 3.5 minutes safety limit
 
-    threads.forEach(thread => {
-      const messages = thread.getMessages();
-      messages.forEach(msg => {
+    for (let i = 0; i < threads.length; i++) {
+      // Check if we are running out of time
+      if (new Date().getTime() - startTime > MAX_EXECUTION_TIME_MS) {
+        break;
+      }
+
+      const messages = threads[i].getMessages();
+      messages.forEach((msg) => {
         emailsToSync.push({
           message_id: msg.getId(),
           subject: msg.getSubject(),
           sender: msg.getFrom(),
           date: msg.getDate().toISOString(),
-          body: msg.getPlainBody()
+          body: msg.getPlainBody(),
         });
       });
-    });
+    }
 
     if (emailsToSync.length === 0) {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("No new emails to sync."))
+        .setNotification(
+          CardService.newNotification().setText("No new emails found to sync."),
+        )
         .build();
     }
 
     // 3. Send to Cloud Run in batches
     const syncUrl = `${cloudRunUrl}/mongodb/sync?user_email=${encodeURIComponent(userEmail)}`;
-    const batchSize = 10;
+    const batchSize = 20; // Increased batch size for efficiency
     let syncedCount = 0;
 
     for (let i = 0; i < emailsToSync.length; i += batchSize) {
+      // Check time again before each network call
+      if (new Date().getTime() - startTime > MAX_EXECUTION_TIME_MS) {
+        break;
+      }
+
       const batch = emailsToSync.slice(i, i + batchSize);
       const options = {
         method: "post" as any,
         contentType: "application/json",
         payload: JSON.stringify(batch),
-        muteHttpExceptions: true
+        muteHttpExceptions: true,
       };
+
       const response = UrlFetchApp.fetch(syncUrl, options);
       if (response.getResponseCode() === 200) {
         syncedCount += batch.length;
@@ -376,21 +412,33 @@ function onSyncMongoDBSEM(e: any) {
     }
 
     const now = new Date().toLocaleString();
+    const isPartial = syncedCount < emailsToSync.length;
+    const statusMsg = isPartial
+      ? `Synced ${syncedCount} emails. Click Sync again to continue.`
+      : `Successfully synced ${syncedCount} emails.`;
+
     return CardService.newActionResponseBuilder()
       .setNavigation(
         CardService.newNavigation().updateCard(
-          createSmartEmailManagerCard("Success", now, "100", now, `Successfully synced ${syncedCount} emails.`),
+          createSmartEmailManagerCard(
+            "Success",
+            now,
+            isPartial ? "50" : "100",
+            now,
+            statusMsg,
+          ),
         ),
       )
-      .setNotification(
-        CardService.newNotification().setText(`Synced ${syncedCount} emails to MongoDB.`),
-      )
+      .setNotification(CardService.newNotification().setText(statusMsg))
       .build();
-
   } catch (err) {
     console.error("Sync Error:", err);
     return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText("Failed to sync emails: " + err.toString()))
+      .setNotification(
+        CardService.newNotification().setText(
+          "Failed to sync emails: " + err.toString(),
+        ),
+      )
       .build();
   }
 }
@@ -409,7 +457,9 @@ function showSmartEmailManager(e: any) {
     try {
       // Check connection status
       const statusUrl = `${cloudRunUrl}/mongodb/status?user_email=${encodeURIComponent(userEmail)}`;
-      const statusResponse = UrlFetchApp.fetch(statusUrl, { muteHttpExceptions: true });
+      const statusResponse = UrlFetchApp.fetch(statusUrl, {
+        muteHttpExceptions: true,
+      });
       if (statusResponse.getResponseCode() === 200) {
         const statusData = JSON.parse(statusResponse.getContentText());
         if (statusData.logged_in) {
@@ -420,7 +470,9 @@ function showSmartEmailManager(e: any) {
 
       // Get last sync timestamp
       const lastSyncUrl = `${cloudRunUrl}/mongodb/last_sync?user_email=${encodeURIComponent(userEmail)}`;
-      const lastSyncResponse = UrlFetchApp.fetch(lastSyncUrl, { muteHttpExceptions: true });
+      const lastSyncResponse = UrlFetchApp.fetch(lastSyncUrl, {
+        muteHttpExceptions: true,
+      });
       if (lastSyncResponse.getResponseCode() === 200) {
         const lastSyncData = JSON.parse(lastSyncResponse.getContentText());
         if (lastSyncData.last_sync) {
@@ -435,7 +487,12 @@ function showSmartEmailManager(e: any) {
   return CardService.newActionResponseBuilder()
     .setNavigation(
       CardService.newNavigation().pushCard(
-        createSmartEmailManagerCard(connectionStatus, connectionTimestamp, syncTimestamp !== "N/A" ? "100" : "0", syncTimestamp),
+        createSmartEmailManagerCard(
+          connectionStatus,
+          connectionTimestamp,
+          syncTimestamp !== "N/A" ? "100" : "0",
+          syncTimestamp,
+        ),
       ),
     )
     .build();

@@ -128,74 +128,24 @@ function createMainCard() {
   smartEmailManagerSection.addWidget(buttonSet);
   cardBuilder.addSection(smartEmailManagerSection);
 
-  // Inbox Analytics Section
+  // Inbox Analytics Section (Cosmetic)
   const inboxAnalyticsSection = CardService.newCardSection()
     .setHeader("Inbox Analytics")
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<small><font color="#999999">This feature will analyze your mail and present you timely insights, mailbox optimization, mail box recommendations and your average response time to a particular user. You can also ask any insight about your mailbox.</font></small>',
+        '<small><font color="#999999">This feature will analyze your mail and present you timely insights, mailbox optimization, mail box recommendations and your average response time. <i>(Coming soon)</i></font></small>',
       ),
-    )
-    .addWidget(
-      CardService.newButtonSet()
-        .addButton(
-          CardService.newTextButton()
-            .setText("View settings")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("showInboxAnalytics"),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Ask Mailbox Questions")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName(
-                "showAskMailboxQuestions",
-              ),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Check connections")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onCheckConnections"),
-            ),
-        ),
     );
 
   cardBuilder.addSection(inboxAnalyticsSection);
 
-  // Smart Arize-ing Email Manager Section
+  // Smart Arize-ing Email Manager Section (Cosmetic)
   const smartArizeingSection = CardService.newCardSection()
     .setHeader("Smart Arize-ing Email Manager")
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<small><font color="#999999">Manage your User Preferences in one place. Your email manager will keep it\'s pace in line with your inbox mails and your activities. Next time it relieves you to reduce burden at managing emails based on recognized personalization.</font></small>',
+        '<small><font color="#999999">Manage your User Preferences in one place. Your email manager will keep it\'s pace in line with your inbox mails and your activities. <i>(Coming soon)</i></font></small>',
       ),
-    )
-    .addWidget(
-      CardService.newButtonSet()
-        .addButton(
-          CardService.newTextButton()
-            .setText("View settings")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName(
-                "showSelfArizingEmailManager",
-              ),
-            ),
-        )
-        .addButton(
-          CardService.newTextButton()
-            .setText("Check connections")
-            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("onCheckConnections"),
-            ),
-        ),
     );
 
   cardBuilder.addSection(smartArizeingSection);

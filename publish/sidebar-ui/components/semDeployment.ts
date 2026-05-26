@@ -44,6 +44,13 @@ function createSEMDeploymentCard() {
     CardService.newCardSection()
       .setHeader("Step 2: Deployment Setup")
       .addWidget(
+        CardService.newTextInput()
+          .setFieldName("project_id")
+          .setTitle("GCP Project ID")
+          .setHint("e.g. fleet-furnace-497500-d2")
+          .setValue(getGCPProjectId() === "YOUR_PROJECT_ID" ? "" : getGCPProjectId())
+      )
+      .addWidget(
         CardService.newTextButton()
           .setText("Deploy Infrastructure")
           .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
@@ -240,11 +247,17 @@ function onReturnToRoot(e: any) {
  */
 function onVerifyDeploymentSEM(e: any) {
   const manualUrl = e.formInput.manual_service_url;
+  const projectIdManual = e.formInput.project_id;
 
   if (!manualUrl || !manualUrl.startsWith("https://")) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification().setText("Please enter a valid Cloud Run Service URL."))
       .build();
+  }
+
+  // Save manual project ID if provided
+  if (projectIdManual) {
+    PropertiesService.getScriptProperties().setProperty("GCP_PROJECT_ID", projectIdManual);
   }
 
   try {
@@ -253,12 +266,18 @@ function onVerifyDeploymentSEM(e: any) {
     
     if (response.getResponseCode() === 200) {
       const data = JSON.parse(response.getContentText());
-      const projectId = data.project_id;
+      const projectIdAuto = data.project_id;
       
       // Save the validated details
       PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", manualUrl);
-      if (projectId && projectId !== "unknown") {
-        PropertiesService.getScriptProperties().setProperty("GCP_PROJECT_ID", projectId);
+      
+      // Prefer auto-discovered ID, but fallback to manual if agent is old
+      if (projectIdAuto && projectIdAuto !== "unknown") {
+        PropertiesService.getScriptProperties().setProperty("GCP_PROJECT_ID", projectIdAuto);
+      } else if (!projectIdManual) {
+         return CardService.newActionResponseBuilder()
+          .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "Connection successful, but your agent is too old to report its Project ID. Please enter your Project ID manually above and click Verify again.")))
+          .build();
       }
 
       return CardService.newActionResponseBuilder()
