@@ -22,6 +22,7 @@ function createButtonGroupSection(
 
   // Add Button Group
   if (buttons && buttons.length > 0) {
+    section.addWidget(CardService.newTextParagraph().setText("<br>"));
     const buttonSet = CardService.newButtonSet();
     buttons.forEach((btn) => {
       const button = CardService.newTextButton()
@@ -36,6 +37,7 @@ function createButtonGroupSection(
       buttonSet.addButton(button);
     });
     section.addWidget(buttonSet);
+    section.addWidget(CardService.newTextParagraph().setText("<br>"));
   }
 
   return section;
