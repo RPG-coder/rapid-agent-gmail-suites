@@ -30,16 +30,29 @@ Before we begin, you need to set up your environment variables.
 ```bash
 gcloud services enable run.googleapis.com \
     cloudbuild.googleapis.com \
-    artifactregistry.googleapis.com
+    artifactregistry.googleapis.com \
+    cloudresourcemanager.googleapis.com
 ```
 
-5.  **Grant Permissions**: Run the following to ensure your Gmail account has the necessary permissions to verify the deployment later:
+5.  **Grant Permissions**: Run the following to ensure your Gmail account has the necessary permissions to manage the deployment and fetch projects:
 
 ```bash
 USER_EMAIL=$(echo $SETUP_TOKEN | base64 --decode)
-gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+PROJECT_ID=$(gcloud config get-value project)
+
+# Required for 'Verify Deployment' and 'Fetch Projects'
+gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/run.viewer"
+
+# Required for 'Update Backend' (One-Click Update)
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="user:$USER_EMAIL" \
+    --role="roles/cloudbuild.builds.editor"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="user:$USER_EMAIL" \
+    --role="roles/run.admin"
 ```
 
 ## Step 2: Initialize Submodules
@@ -86,6 +99,13 @@ gcloud run deploy smart-email-manager-agent \
 
 ## Step 4: Verify Deployment
 
-Once the deployment is successful, return to your Gmail Sidebar and click the **"Verify Deployment"** button. The add-on will automatically find your new service in the `$CHOSEN_REGION` region and connect to it.
+Once the deployment is successful, gcloud will output your **Service URL** (e.g., `https://smart-email-manager-agent-xyz-uc.a.run.app`).
+
+1.  **Copy the Service URL** from the terminal.
+2.  Return to your **Gmail Sidebar**.
+3.  Paste the URL into the **"Cloud Run Service URL"** box.
+4.  Click the **"Verify Connection"** button.
+
+The add-on will automatically connect to your agent, retrieve your Project ID, and finalize the setup.
 
 Congratulations! Your Smart Email Manager Agent is now live.

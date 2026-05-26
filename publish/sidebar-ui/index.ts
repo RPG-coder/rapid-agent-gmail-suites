@@ -8,6 +8,14 @@ function getCloudRunUrl() {
   return url || "https://www.putchakai.com/gmail-addon/404";
 }
 
+/**
+ * Retrieves the GCP Project ID from script properties.
+ * Defaults to a placeholder if not set.
+ */
+function getGCPProjectId() {
+  return PropertiesService.getScriptProperties().getProperty("GCP_PROJECT_ID") || "YOUR_PROJECT_ID";
+}
+
 function onHomepage(e: any) {
   return createMainCard();
 }

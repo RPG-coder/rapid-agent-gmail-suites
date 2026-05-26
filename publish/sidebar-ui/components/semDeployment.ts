@@ -50,17 +50,6 @@ function createSEMDeploymentCard() {
           .setBackgroundColor("#4285F4")
           .setOnClickAction(CardService.newAction().setFunctionName("onDeployGCPSEM"))
       )
-      .addWidget(
-        CardService.newTextParagraph().setText(
-          '<div style="text-align: center;"><b>— OR —</b></div>',
-        ),
-      )
-      .addWidget(
-        CardService.newTextInput()
-          .setFieldName("manual_service_url")
-          .setTitle("Enter Service URL manually")
-          .setHint("https://...a.run.app"),
-      ),
   );
 
   // Step 3: Verify Deployment
@@ -69,8 +58,14 @@ function createSEMDeploymentCard() {
       .setHeader("Step 3: Verify Deployment")
       .addWidget(
         CardService.newTextParagraph().setText(
-          '<font color="#999999">Once deployed, click verify to link your agent to this add-on.</font>',
+          '<font color="#999999">Paste your Cloud Run Service URL below to link your agent.</font>',
         ),
+      )
+      .addWidget(
+        CardService.newTextInput()
+          .setFieldName("manual_service_url")
+          .setTitle("Cloud Run Service URL")
+          .setHint("https://...a.run.app"),
       )
       .addWidget(
         CardService.newTextButton()
@@ -244,59 +239,40 @@ function onReturnToRoot(e: any) {
  * Action handler for Verify Deployment.
  */
 function onVerifyDeploymentSEM(e: any) {
-  const selectedRegion = e.formInput.region || "us-central1";
   const manualUrl = e.formInput.manual_service_url;
-  const accessToken = ScriptApp.getOAuthToken();
 
-  // 1. Check for manual URL first
-  if (manualUrl && manualUrl.startsWith("https://")) {
-    PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", manualUrl);
+  if (!manualUrl || !manualUrl.startsWith("https://")) {
     return CardService.newActionResponseBuilder()
-      .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(true, "✅ Service URL updated manually. Now you can Login to MongoDB from the Home screen.")))
-      .setNotification(CardService.newNotification().setText("Manual verification successful!"))
+      .setNotification(CardService.newNotification().setText("Please enter a valid Cloud Run Service URL."))
       .build();
   }
 
   try {
-    const projectId = "983993789043";
-    const url = `https://run.googleapis.com/v1/projects/${projectId}/locations/${selectedRegion}/services`;
-    const response = UrlFetchApp.fetch(url, {
-      headers: { Authorization: "Bearer " + accessToken },
-      muteHttpExceptions: true,
-    });
-
+    // Call the agent root to verify it's running and get the project ID
+    const response = UrlFetchApp.fetch(manualUrl, { muteHttpExceptions: true });
+    
     if (response.getResponseCode() === 200) {
       const data = JSON.parse(response.getContentText());
-      const services = data.items || [];
+      const projectId = data.project_id;
       
-      // Regex check for smart-email-manager-agent
-      const serviceRegex = /smart-email-manager-agent/i;
-      const matchedService = services.find((s: any) => serviceRegex.test(s.metadata.name));
-
-      if (matchedService) {
-        const serviceUrl = matchedService.status.url;
-        PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", serviceUrl);
-
-        return CardService.newActionResponseBuilder()
-          .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(true, "✅ Agent discovered automatically! Service URL: " + serviceUrl)))
-          .build();
-      } else {
-        return CardService.newActionResponseBuilder()
-          .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "No matching Cloud Run service found in " + selectedRegion + ".")))
-          .build();
+      // Save the validated details
+      PropertiesService.getScriptProperties().setProperty("CLOUD_RUN_URL", manualUrl);
+      if (projectId && projectId !== "unknown") {
+        PropertiesService.getScriptProperties().setProperty("GCP_PROJECT_ID", projectId);
       }
-    } else {
-      let errorMsg = "Error querying Cloud Run API: " + response.getResponseCode();
-      if (response.getResponseCode() === 403) {
-        errorMsg = "Verification Error (403): Insufficient IAM permissions.";
-      }
+
       return CardService.newActionResponseBuilder()
-        .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, errorMsg)))
+        .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(true, "✅ Connection successful! Agent is running and Project ID saved.")))
+        .setNotification(CardService.newNotification().setText("Verification successful!"))
+        .build();
+    } else {
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, `Agent returned error ${response.getResponseCode()}. Check your Cloud Run logs.`)))
         .build();
     }
   } catch (err) {
     return CardService.newActionResponseBuilder()
-      .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "Verification failed: " + err.toString())))
+      .setNavigation(CardService.newNavigation().pushCard(createVerifyDeploymentResultCard(false, "Could not reach the service. Ensure the URL is correct and the service is public.")))
       .build();
   }
 }

@@ -235,7 +235,12 @@ function onUpdateBackendSEM(e: any) {
  */
 function onTriggerCloudBuildSEM(e: any) {
   const accessToken = ScriptApp.getOAuthToken();
-  const projectId = "983993789043"; // Your GCP Project ID
+  const projectId = getGCPProjectId();
+  if (projectId === "YOUR_PROJECT_ID") {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Project ID not found. Please re-run verification from the deployment screen."))
+      .build();
+  }
   const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites";
   
   // Cloud Build Trigger API
