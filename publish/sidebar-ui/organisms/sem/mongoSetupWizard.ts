@@ -26,7 +26,7 @@ function createMongoSetupWizardPage() {
       CardService.newTextButton()
         .setText("Open MongoDB Access Manager")
         .setOpenLink(
-          CardService.newOpenLink().setUrl("https://cloud.mongodb.com/v2#/org/settings/access")
+          CardService.newOpenLink().setUrl("https://cloud.mongodb.com/v2#/preferences/organizations")
         )
     );
   
