@@ -34,25 +34,23 @@ gcloud services enable run.googleapis.com \
     cloudresourcemanager.googleapis.com
 ```
 
-5.  **Grant Permissions**: Run the following to ensure your Gmail account has the necessary permissions to manage the deployment and fetch projects. Execute these blocks one by one:
+5.  **Grant Permissions**: Execute these blocks one by one to ensure your account has the necessary permissions.
 
-**Initialize Identity**
+**1. Initialize Identity**
 ```bash
-# Use the token directly as the email, with a fallback to the active gcloud account
 USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
 PROJECT_ID=$(gcloud config get-value project)
-
 echo "Setting permissions for: $USER_EMAIL"
 ```
 
-**Required for 'Verify Deployment' and 'Fetch Projects'**
+**2. Grant Viewer Access** (Required for 'Verify Deployment' and 'Fetch Projects')
 ```bash
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/run.viewer"
 ```
 
-**Required for 'Update Backend' (One-Click Update)**
+**3. Grant Admin/Editor Access** (Required for 'Update Backend')
 ```bash
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
