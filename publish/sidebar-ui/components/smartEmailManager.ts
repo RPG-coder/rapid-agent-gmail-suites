@@ -85,14 +85,23 @@ function createSmartEmailManagerCard(
   const manualWorkflowsSection = CardService.newCardSection()
     .setHeader("Manual Workflows")
     .addWidget(
-      CardService.newButtonSet().addButton(
-        CardService.newTextButton()
-          .setText("Check connection")
-          .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-          .setOnClickAction(
-            CardService.newAction().setFunctionName("onCheckConnectionSEM"),
-          ),
-      ),
+      CardService.newButtonSet()
+        .addButton(
+          CardService.newTextButton()
+            .setText("Check connection")
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("onCheckConnectionSEM"),
+            ),
+        )
+        .addButton(
+          CardService.newTextButton()
+            .setText("Update backend")
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("onUpdateBackendSEM"),
+            ),
+        ),
     );
 
   manualWorkflowsSection
@@ -211,6 +220,80 @@ function onCheckConnectionSEM(e: any) {
       ),
     )
     .build();
+}
+
+/**
+ * Action handler for updating the backend.
+ * Triggers an automated Cloud Build.
+ */
+function onUpdateBackendSEM(e: any) {
+  return onTriggerCloudBuildSEM(e);
+}
+
+/**
+ * Automatically triggers a GCP Cloud Build for the agent.
+ */
+function onTriggerCloudBuildSEM(e: any) {
+  const accessToken = ScriptApp.getOAuthToken();
+  const projectId = "983993789043"; // Your GCP Project ID
+  const repoUrl = "https://github.com/RPG-coder/rapid-agent-gmail-suites";
+  
+  // Cloud Build Trigger API
+  const url = `https://cloudbuild.googleapis.com/v1/projects/${projectId}/builds`;
+  
+  const buildRequest = {
+    "source": {
+      "gitSource": {
+        "url": repoUrl,
+        "dir": "agents/smart-email-manager",
+        "revision": "main"
+      }
+    },
+    "steps": [
+      {
+        "name": "gcr.io/cloud-builders/docker",
+        "args": ["build", "-t", `gcr.io/${projectId}/smart-email-manager-agent`, "."]
+      },
+      {
+        "name": "gcr.io/cloud-builders/docker",
+        "args": ["push", `gcr.io/${projectId}/smart-email-manager-agent`]
+      },
+      {
+        "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+        "entrypoint": "gcloud",
+        "args": [
+          "run", "deploy", "smart-email-manager-agent",
+          "--image", `gcr.io/${projectId}/smart-email-manager-agent`,
+          "--region", "us-central1",
+          "--platform", "managed",
+          "--allow-unauthenticated"
+        ]
+      }
+    ]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + accessToken },
+      payload: JSON.stringify(buildRequest),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("🚀 Update initiated! Your backend is being rebuilt and redeployed. Please check back in 2-3 minutes."))
+        .build();
+    } else {
+      console.error("Cloud Build Error:", response.getContentText());
+      // Fallback to manual if API fails (e.g., missing API enable or scope)
+      return showSEMDeployment(e);
+    }
+  } catch (err) {
+    console.error("Update Trigger failed:", err);
+    return showSEMDeployment(e);
+  }
 }
 
 /**
