@@ -78,6 +78,22 @@ function createSEMDeployPage(e?: any) {
 
   sections.push(step2Section);
 
+  // --- Step 3: Verify Deployment ---
+  sections.push(
+    createButtonGroupSection(
+      "Step 3: Verify Deployment",
+      "Verify is everything is good.",
+      [
+        { 
+          text: "Verify deployment", 
+          functionName: "showVerifyDeployment",
+          style: CardService.TextButtonStyle.FILLED,
+          color: "#0F9D58"
+        }
+      ]
+    )
+  );
+
   return createPage(
     "SEM_DEPLOY_PAGE",
     "Deploy Agent",
