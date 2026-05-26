@@ -1,14 +1,6 @@
 {
   "timeZone": "America/New_York",
-  "dependencies": {
-    "libraries": [
-      {
-        "userSymbol": "OAuth2",
-        "version": "43",
-        "libraryId": "1B7_5jkNPD_L_BqnS_TvYutxuSJpuC5mwDBKHAzIh7atMvS_87XonMj9D"
-      }
-    ]
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "urlFetchWhitelist": [
