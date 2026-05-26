@@ -4,7 +4,6 @@
  */
 function createFooterSection() {
   return CardService.newCardSection()
-    .addWidget(CardService.newDivider())
     .addWidget(
       CardService.newDecoratedText()
         .setBottomLabel("Terms & Conditions | Privacy Policy | Support")

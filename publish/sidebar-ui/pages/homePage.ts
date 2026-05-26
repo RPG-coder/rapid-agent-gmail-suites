@@ -16,22 +16,13 @@ function createHomePage() {
       )
       .addWidget(
         CardService.newTextParagraph().setText(
-          '<font color="#4D4D4D">Below are the feature agents and their setting that are part of the Gmail suite add-on.</font>'
+          '<font color="#4D4D4D"><small>Below are the feature agents and their setting that are part of the Gmail suite add-on.</small></font>'
         )
       )
   );
 
-  // --- SECTION 1: SMART EMAIL MANAGER ---
-  cardBuilder.addSection(
-    createButtonGroupSection(
-      "Smart Email Manager",
-      "This feature will organize all your mails into appropriate label groups so you can know where your most important mails are when you access.",
-      [
-        { text: "View settings", functionName: "onViewSettings" },
-        { text: "Check connections", functionName: "onCheckConnections" }
-      ]
-    )
-  );
+  // --- SECTION 1: SMART EMAIL MANAGER (ORGNISM) ---
+  cardBuilder.addSection(createSmartEmailManagerHomeSection());
 
   // --- SECTION 2: INBOX ANALYTICS ---
   cardBuilder.addSection(
