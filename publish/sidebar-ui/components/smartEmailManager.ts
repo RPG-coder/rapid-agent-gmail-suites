@@ -323,10 +323,15 @@ function onSyncMongoDBSEM(e: any) {
 
     // 2. Search for emails
     let query = "";
-    if (lastSync) {
-      // Gmail search uses seconds for 'after'
-      const afterTimestamp = Math.floor(new Date(lastSync).getTime() / 1000);
-      query = `after:${afterTimestamp}`;
+    if (lastSync && lastSync !== "None") {
+      const parsedDate = new Date(lastSync);
+      if (!isNaN(parsedDate.getTime())) {
+        // Gmail search uses seconds for 'after'
+        const afterTimestamp = Math.floor(parsedDate.getTime() / 1000);
+        query = `after:${afterTimestamp}`;
+      } else {
+        console.warn("Invalid lastSync date received from backend:", lastSync);
+      }
     }
 
     const threads = GmailApp.search(query, 0, 50); // Limit to 50 threads for now to avoid timeouts
