@@ -50,23 +50,23 @@ function createSEMDeploymentCard() {
           .setBackgroundColor("#4285F4")
           .setOnClickAction(CardService.newAction().setFunctionName("onDeployGCPSEM"))
       )
+      .addWidget(
+        CardService.newTextParagraph().setText(
+          '<div style="text-align: center;"><b>— OR —</b></div>',
+        ),
+      )
+      .addWidget(
+        CardService.newTextInput()
+          .setFieldName("manual_service_url")
+          .setTitle("Enter Service URL manually")
+          .setHint("https://...a.run.app"),
+      )
   );
 
   // Step 3: Verify Deployment
   cardBuilder.addSection(
     CardService.newCardSection()
       .setHeader("Step 3: Verify Deployment")
-      .addWidget(
-        CardService.newTextParagraph().setText(
-          '<font color="#999999">Paste your Cloud Run Service URL below to link your agent.</font>',
-        ),
-      )
-      .addWidget(
-        CardService.newTextInput()
-          .setFieldName("manual_service_url")
-          .setTitle("Cloud Run Service URL")
-          .setHint("https://...a.run.app"),
-      )
       .addWidget(
         CardService.newTextButton()
           .setText("Verify Connection")
