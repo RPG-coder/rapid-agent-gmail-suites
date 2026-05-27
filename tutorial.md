@@ -31,7 +31,9 @@ Before we begin, you need to set up your environment variables.
 gcloud services enable run.googleapis.com \
     cloudbuild.googleapis.com \
     artifactregistry.googleapis.com \
-    cloudresourcemanager.googleapis.com
+    cloudresourcemanager.googleapis.com \
+    discoveryengine.googleapis.com \
+    dialogflow.googleapis.com
 ```
 
 5.  **Grant Permissions**: Execute these blocks one by one to ensure your account has the necessary permissions.
