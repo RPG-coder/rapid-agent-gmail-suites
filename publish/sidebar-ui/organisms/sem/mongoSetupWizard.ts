@@ -6,6 +6,9 @@ import { createPage } from '../../atoms/page';
  */
 export function createMongoSetupWizardPage() {
   const sections = [];
+  const props = PropertiesService.getScriptProperties();
+  const status = props.getProperty("MONGODB_STATUS");
+  const isProvisioning = status === "PROVISIONING";
 
   // --- Step 1: Instructions ---
   const instructionSection = CardService.newCardSection()
@@ -48,14 +51,38 @@ export function createMongoSetupWizardPage() {
         .setFieldName("mongo_private_key")
         .setTitle("Private Key")
         .setHint("Example: 12345678-abcd-1234-abcd-1234567890ab")
-    )
-    .addWidget(
-      CardService.newTextButton()
-        .setText("Connect & Auto-Provision Database")
-        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-        .setBackgroundColor("#0F9D58")
-        .setOnClickAction(CardService.newAction().setFunctionName("onConnectMongoDB"))
     );
+
+  const buttonSet = CardService.newButtonSet();
+
+  // Connect Button
+  const connectButton = CardService.newTextButton()
+    .setText("Connect & Auto-Provision Database")
+    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+    .setBackgroundColor("#0F9D58")
+    .setDisabled(isProvisioning)
+    .setOnClickAction(CardService.newAction().setFunctionName("onConnectMongoDB"));
+  
+  buttonSet.addButton(connectButton);
+
+  // Verify Button (Visible only if provisioning)
+  if (isProvisioning) {
+    inputSection.addWidget(
+      CardService.newTextParagraph().setText(
+        '<font color="#F4B400"><b>Status:</b> Database is being built in the cloud. This takes ~3 minutes.</font>'
+      )
+    );
+
+    const verifyButton = CardService.newTextButton()
+      .setText("Verify & Finalize Setup")
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setBackgroundColor("#4285F4")
+      .setOnClickAction(CardService.newAction().setFunctionName("onVerifyDB"));
+    
+    buttonSet.addButton(verifyButton);
+  }
+
+  inputSection.addWidget(buttonSet);
 
   sections.push(inputSection);
 

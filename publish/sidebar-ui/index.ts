@@ -219,6 +219,16 @@ export function onConnectMongoDB(e: any) {
       props.setProperty("MCP_ENDPOINT", result.mcp_url);
       props.setProperty("GCP_PUB_SUB_TOPIC", result.pubsub_topic);
 
+      // If the message contains provisioning note, set status
+      if (result.message.includes("provisioning")) {
+        props.setProperty("MONGODB_STATUS", "PROVISIONING");
+        return CardService.newActionResponseBuilder()
+          .setNotification(CardService.newNotification().setText("Infrastructure setup. Waiting for DB..."))
+          .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
+          .build();
+      }
+
+      props.setProperty("MONGODB_STATUS", "READY");
       setupGmailWatch();
 
       return CardService.newActionResponseBuilder()
@@ -234,6 +244,36 @@ export function onConnectMongoDB(e: any) {
   } catch (error) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification().setText("System Error: " + error.toString()))
+      .build();
+  }
+}
+
+/**
+ * Verification: Check if MongoDB cluster is ready
+ */
+export function onVerifyDB(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
+
+  try {
+    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/verify-db`, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.status === "ready") {
+      props.setProperty("MONGODB_STATUS", "READY");
+      setupGmailWatch();
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("Success: Database is now active!"))
+        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
+        .build();
+    } else {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("Still provisioning... Try again in a minute."))
+        .build();
+    }
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Verification Error: " + error.toString()))
       .build();
   }
 }
@@ -294,4 +334,5 @@ gasGlobal.onOpenCloudShellSetup = onOpenCloudShellSetup;
 gasGlobal.onGetAgentLink = onGetAgentLink;
 gasGlobal.showMongoSetupWizard = showMongoSetupWizard;
 gasGlobal.onConnectMongoDB = onConnectMongoDB;
+gasGlobal.onVerifyDB = onVerifyDB;
 gasGlobal.onCheckStatus = onCheckStatus;
