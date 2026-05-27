@@ -59,6 +59,15 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/run.admin"
+
+# Required for Automated Infrastructure (Agent Builder)
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="user:$USER_EMAIL" \
+    --role="roles/discoveryengine.admin"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="user:$USER_EMAIL" \
+    --role="roles/serviceusage.serviceUsageAdmin"
 ```
 
 ## Step 2: Initialize Submodules
