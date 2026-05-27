@@ -12,8 +12,8 @@ function getCloudRunUrl(): string {
  * @returns {boolean} True by default for now.
  */
 function isUserLoggedInMongoDB(): boolean {
-  // return true by default for now as per request
-  return true;
+  const mongoId = PropertiesService.getScriptProperties().getProperty("MONGODB_PROJECT_ID");
+  return !!mongoId;
 }
 
 /**
@@ -133,7 +133,6 @@ function onGetAgentLink(e: any) {
         .build();
     }
 
-    // Attempt to find the service in the selected region across all accessible projects
     for (const project of projects) {
       const url = `https://run.googleapis.com/v2/projects/${project.projectId}/locations/${region}/services/smart-email-manager-agent`;
       const response = UrlFetchApp.fetch(url, {
@@ -151,15 +150,6 @@ function onGetAgentLink(e: any) {
         return CardService.newActionResponseBuilder()
           .setNotification(CardService.newNotification().setText("Success: Agent link retrieved!"))
           .setNavigation(CardService.newNavigation().updateCard(createVerifyDeploymentPage()))
-          .build();
-      } else if (responseCode === 403) {
-        // Log but continue searching other projects
-        console.warn(`Permission denied for project ${project.projectId}`);
-      } else if (responseCode !== 404) {
-        // If it's a serious error (not just 'not found'), surface it
-        const errorData = JSON.parse(response.getContentText());
-        return CardService.newActionResponseBuilder()
-          .setNotification(CardService.newNotification().setText(`GCP Error (${project.projectId}): ${errorData.error.message}`))
           .build();
       }
     }
@@ -189,29 +179,27 @@ function showMongoSetupWizard(e: any) {
  */
 function onConnectMongoDB(e: any) {
   const publicKey = e.formInput.mongo_public_key;
-  const privateKey = e.formInput.mongo_private_key;
+  const private_key = e.formInput.mongo_private_key;
   const userEmail = Session.getActiveUser().getEmail();
   
   const props = PropertiesService.getScriptProperties();
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
 
-  if (!publicKey || !privateKey) {
+  if (!publicKey || !private_key) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification().setText("Error: Both Public and Private keys are required."))
       .build();
   }
 
-  if (!cloudRunUrl) {
-    return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText("Error: Cloud Run Agent not detected. Please verify deployment first."))
-      .build();
-  }
-
   try {
+    // Get the user's current OAuth token for background processing
+    const gmailToken = ScriptApp.getOAuthToken();
+
     const payload = {
       "mongo_public_key": publicKey,
-      "mongo_private_key": privateKey,
-      "user_email": userEmail
+      "mongo_private_key": private_key,
+      "user_email": userEmail,
+      "gmail_token": gmailToken
     };
 
     const options: any = {
@@ -221,24 +209,25 @@ function onConnectMongoDB(e: any) {
       "muteHttpExceptions": true
     };
 
-    // Call the Agent's setup-db endpoint
     const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/setup-db`, options);
     const result = JSON.parse(response.getContentText());
 
     if (response.getResponseCode() === 200) {
-      // Save details to indicate configuration is complete
       props.setProperty("MONGODB_PROJECT_ID", result.mongo_project_id);
       props.setProperty("AGENT_BUILDER_APP", result.agent_builder_app);
       props.setProperty("MCP_ENDPOINT", result.mcp_url);
-      
+      props.setProperty("GCP_PUB_SUB_TOPIC", result.pubsub_topic);
+
+      // Initiate the Gmail Watch
+      setupGmailWatch();
+
       return CardService.newActionResponseBuilder()
         .setNotification(CardService.newNotification().setText("Success: " + result.message))
-        // Force refresh the UI by updating to the home page
         .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
         .build();
     } else {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Agent Error: " + (result.error || "Setup failed")))
+        .setNotification(CardService.newNotification().setText("Agent Error: " + (result.detail || "Setup failed")))
         .build();
     }
 
@@ -249,8 +238,53 @@ function onConnectMongoDB(e: any) {
   }
 }
 
+/**
+ * Refreshes the Gmail Watch and Agent status.
+ */
 function onCheckStatus(e: any) {
+  setupGmailWatch();
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Checking agent and MongoDB status..."))
+    .setNotification(CardService.newNotification().setText("Status checked. Gmail Push Notifications refreshed."))
     .build();
+}
+
+/**
+ * Gmail: Setup Push Notifications
+ * Tells Gmail to send notifications to our Pub/Sub topic.
+ */
+function setupGmailWatch() {
+  const props = PropertiesService.getScriptProperties();
+  const topicName = props.getProperty("GCP_PUB_SUB_TOPIC");
+  
+  if (!topicName) {
+    console.error("Missing GCP_PUB_SUB_TOPIC property.");
+    return;
+  }
+
+  const payload = {
+    topicName: topicName,
+    labelIds: ["INBOX"]
+  };
+
+  const options: any = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", options);
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      props.setProperty("GMAIL_WATCH_EXPIRATION", result.expiration);
+      console.log("Gmail Watch active until: " + new Date(parseInt(result.expiration)));
+    } else {
+      console.error("Gmail Watch failed: " + response.getContentText());
+    }
+  } catch (error) {
+    console.error("Gmail Watch Error: " + error.toString());
+  }
 }

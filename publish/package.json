@@ -6,11 +6,17 @@
     "push": "clasp push",
     "deploy": "clasp deploy",
     "open": "clasp open",
-    "check-types": "tsc"
+    "check-types": "tsc",
+    "build": "webpack",
+    "watch": "webpack --watch"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2",
-    "@types/google-apps-script": "^2.0.9",
-    "typescript": "^6.0.3"
+    "@types/google-apps-script": "^1.0.83",
+    "gas-webpack-plugin": "^2.6.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
   }
 }
