@@ -178,9 +178,9 @@ export function showMongoSetupWizard(e: any) {
 }
 
 /**
- * MongoDB Handlers: Connect and Provision
+ * Phase 1: Initialize MongoDB Atlas Deployment
  */
-export function onConnectMongoDB(e: any) {
+export function onInitDBDeployment(e: any) {
   const publicKey = e.formInput.mongo_public_key;
   const private_key = e.formInput.mongo_private_key;
   const userEmail = Session.getActiveUser().getEmail();
@@ -210,37 +210,22 @@ export function onConnectMongoDB(e: any) {
       "muteHttpExceptions": true
     };
 
-    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/setup-db`, options);
+    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/setup-db-init`, options);
     const result = JSON.parse(response.getContentText());
 
     if (response.getResponseCode() === 200) {
       props.setProperty("MONGODB_PROJECT_ID", result.mongo_project_id);
-      props.setProperty("AGENT_BUILDER_APP", result.agent_builder_app);
-      props.setProperty("MCP_ENDPOINT", result.mcp_url);
-      props.setProperty("GCP_PUB_SUB_TOPIC", result.pubsub_topic);
-
-      // If the message contains provisioning note, set status
-      if (result.message.includes("provisioning")) {
-        props.setProperty("MONGODB_STATUS", "PROVISIONING");
-        return CardService.newActionResponseBuilder()
-          .setNotification(CardService.newNotification().setText("Infrastructure setup. Waiting for DB..."))
-          .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
-          .build();
-      }
-
-      props.setProperty("MONGODB_STATUS", "READY");
-      setupGmailWatch();
+      props.setProperty("SETUP_STATUS", "DB_PROVISIONING");
 
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Success: " + result.message))
-        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
+        .setNotification(CardService.newNotification().setText("Database setup initialized successfully!"))
+        .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
         .build();
     } else {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Agent Error: " + (result.detail || "Setup failed")))
+        .setNotification(CardService.newNotification().setText("Agent Error: " + (result.detail || "Init failed")))
         .build();
     }
-
   } catch (error) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification().setText("System Error: " + error.toString()))
@@ -249,7 +234,57 @@ export function onConnectMongoDB(e: any) {
 }
 
 /**
- * Verification: Check if MongoDB cluster is ready
+ * Phase 2: Build GCP Infrastructure (Vertex AI, Pub/Sub)
+ */
+export function onBuildGCPInfrastructure(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
+  
+  const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
+  const mongoProjectId = props.getProperty("MONGODB_PROJECT_ID");
+  const userEmail = Session.getActiveUser().getEmail();
+  const gmailToken = ScriptApp.getOAuthToken();
+
+  if (!mongoProjectId) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("Error: MongoDB Project ID missing. Start over."))
+      .build();
+  }
+
+  try {
+    const url = `${cloudRunUrl}/api/setup-gcp-infra?` +
+      `project_id=${encodeURIComponent(projectId)}&` +
+      `mongo_project_id=${encodeURIComponent(mongoProjectId)}&` +
+      `user_email=${encodeURIComponent(userEmail)}&` +
+      `gmail_token=${encodeURIComponent(gmailToken)}`;
+
+    const response = UrlFetchApp.fetch(url, { method: "post", muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      props.setProperty("AGENT_BUILDER_APP", result.agent_builder_app);
+      props.setProperty("GCP_PUB_SUB_TOPIC", result.pubsub_topic);
+      props.setProperty("MCP_ENDPOINT", `${cloudRunUrl}/mcp/call`);
+      props.setProperty("SETUP_STATUS", "GCP_READY");
+
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("Vertex AI Environment Provisioned!"))
+        .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
+        .build();
+    } else {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("Agent Error: " + (result.detail || "GCP Setup failed")))
+        .build();
+    }
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("System Error: " + error.toString()))
+      .build();
+  }
+}
+
+/**
+ * Phase 3: Verification: Check if MongoDB cluster is ready
  */
 export function onVerifyDB(e: any) {
   const props = PropertiesService.getScriptProperties();
@@ -260,6 +295,7 @@ export function onVerifyDB(e: any) {
     const result = JSON.parse(response.getContentText());
 
     if (result.status === "ready") {
+      props.setProperty("SETUP_STATUS", "COMPLETED");
       props.setProperty("MONGODB_STATUS", "READY");
       setupGmailWatch();
       return CardService.newActionResponseBuilder()
@@ -333,6 +369,7 @@ gasGlobal.onOpenMongoDBRegistration = onOpenMongoDBRegistration;
 gasGlobal.onOpenCloudShellSetup = onOpenCloudShellSetup;
 gasGlobal.onGetAgentLink = onGetAgentLink;
 gasGlobal.showMongoSetupWizard = showMongoSetupWizard;
-gasGlobal.onConnectMongoDB = onConnectMongoDB;
+gasGlobal.onInitDBDeployment = onInitDBDeployment;
+gasGlobal.onBuildGCPInfrastructure = onBuildGCPInfrastructure;
 gasGlobal.onVerifyDB = onVerifyDB;
 gasGlobal.onCheckStatus = onCheckStatus;

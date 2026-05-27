@@ -7,10 +7,9 @@ import { createPage } from '../../atoms/page';
 export function createMongoSetupWizardPage() {
   const sections = [];
   const props = PropertiesService.getScriptProperties();
-  const status = props.getProperty("MONGODB_STATUS");
-  const isProvisioning = status === "PROVISIONING";
+  const setupStatus = props.getProperty("SETUP_STATUS") || "START"; // START, DB_PROVISIONING, GCP_READY
 
-  // --- Step 1: Instructions ---
+  // --- Step 1: Instructions (Always show unless completed) ---
   const instructionSection = CardService.newCardSection()
     .setHeader("Step 1: Create API Keys")
     .addWidget(
@@ -37,60 +36,67 @@ export function createMongoSetupWizardPage() {
   
   sections.push(instructionSection);
 
-  // --- Step 2: Input Keys ---
-  const inputSection = CardService.newCardSection()
-    .setHeader("Step 2: Enter Credentials")
-    .addWidget(
+  // --- Progress / Action Section ---
+  const actionSection = CardService.newCardSection().setHeader("Setup Progress");
+  const buttonSet = CardService.newButtonSet();
+
+  if (setupStatus === "START") {
+    actionSection.addWidget(
       CardService.newTextInput()
         .setFieldName("mongo_public_key")
         .setTitle("Public Key")
         .setHint("Example: abcdefgh")
-    )
-    .addWidget(
+    );
+    actionSection.addWidget(
       CardService.newTextInput()
         .setFieldName("mongo_private_key")
         .setTitle("Private Key")
         .setHint("Example: 12345678-abcd-1234-abcd-1234567890ab")
     );
 
-  const buttonSet = CardService.newButtonSet();
-
-  // Connect Button
-  const connectButton = CardService.newTextButton()
-    .setText("Connect & Auto-Provision Database")
-    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-    .setBackgroundColor("#0F9D58")
-    .setDisabled(isProvisioning)
-    .setOnClickAction(CardService.newAction().setFunctionName("onConnectMongoDB"));
+    const connectButton = CardService.newTextButton()
+      .setText("1. Provision Database Cluster")
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setBackgroundColor("#0F9D58")
+      .setOnClickAction(CardService.newAction().setFunctionName("onInitDBDeployment"));
+    buttonSet.addButton(connectButton);
+  } 
   
-  buttonSet.addButton(connectButton);
-
-  // Verify Button (Visible only if provisioning)
-  if (isProvisioning) {
-    inputSection.addWidget(
-      CardService.newTextParagraph().setText(
-        '<font color="#F4B400"><b>Status:</b> Database is being built in the cloud. This takes ~3 minutes.</font>'
-      )
-    );
-
-    const verifyButton = CardService.newTextButton()
-      .setText("Verify & Finalize Setup")
+  else if (setupStatus === "DB_PROVISIONING") {
+    actionSection.addWidget(CardService.newTextParagraph().setText(
+      '<font color="#F4B400"><b>Step 1 Complete:</b> Database cluster is spinning up in Atlas cloud.</font>'
+    ));
+    
+    const gcpButton = CardService.newTextButton()
+      .setText("2. Provision Vertex AI Agent Environment")
       .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
       .setBackgroundColor("#4285F4")
+      .setOnClickAction(CardService.newAction().setFunctionName("onBuildGCPInfrastructure"));
+    buttonSet.addButton(gcpButton);
+  } 
+  
+  else if (setupStatus === "GCP_READY") {
+    actionSection.addWidget(CardService.newTextParagraph().setText(
+      '<font color="#0F9D58"><b>Step 2 Complete:</b> Vertex AI Platform & Pub/Sub elements active.</font><br>' +
+      '<font color="#4285F4">Awaiting final database availability confirmation...</font>'
+    ));
+
+    const verifyButton = CardService.newTextButton()
+      .setText("3. Verify & Finalize Application Sync")
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setBackgroundColor("#9C27B0")
       .setOnClickAction(CardService.newAction().setFunctionName("onVerifyDB"));
-    
     buttonSet.addButton(verifyButton);
   }
 
-  inputSection.addWidget(buttonSet);
-
-  sections.push(inputSection);
+  actionSection.addWidget(buttonSet);
+  sections.push(actionSection);
 
   return createPage(
     "MONGO_SETUP_WIZARD",
     "Configure MongoDB",
     "Smart Email Manager / MongoDB Setup",
-    "Follow these steps to link your MongoDB account.",
+    "Follow the phases below to provision your environment.",
     sections
   );
 }
