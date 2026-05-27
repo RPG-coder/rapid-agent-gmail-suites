@@ -37,8 +37,8 @@ gcloud services enable run.googleapis.com \
 ```
 
 5.  **Grant Permissions**: Execute these blocks one by one to ensure your account has the necessary permissions.
-
 **1. Initialize Identity**
+Use the token directly as the email, with a fallback to the active gcloud account.
 ```bash
 USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
 PROJECT_ID=$(gcloud config get-value project)
@@ -52,7 +52,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
     --role="roles/run.viewer"
 ```
 
-**3. Grant Admin/Editor Access** (Required for 'Update Backend')
+**3. Grant Admin/Editor Access** (Required for 'Update Backend' and Automated Agent Builder)
 ```bash
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
@@ -62,7 +62,6 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/run.admin"
 
-# Required for Automated Infrastructure (Agent Builder)
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/discoveryengine.admin"
