@@ -226,9 +226,13 @@ function onConnectMongoDB(e: any) {
     const result = JSON.parse(response.getContentText());
 
     if (response.getResponseCode() === 200) {
+      // Save the Project ID to indicate configuration is complete
+      props.setProperty("MONGODB_PROJECT_ID", result.project_id);
+      
       return CardService.newActionResponseBuilder()
         .setNotification(CardService.newNotification().setText("Success: " + result.message))
-        .setNavigation(CardService.newNavigation().popCard())
+        // Force refresh the UI by pushing/updating to the home page or verification page
+        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
         .build();
     } else {
       return CardService.newActionResponseBuilder()

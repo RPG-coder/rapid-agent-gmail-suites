@@ -51,12 +51,22 @@ function createVerifyDeploymentPage() {
     sections.push(detectionSection);
 
     // --- MongoDB Setup Section (Appears after backend discovery) ---
+    const mongoProjectId = props.getProperty("MONGODB_PROJECT_ID");
+    const isMongoConfigured = !!mongoProjectId;
+
     sections.push(
       createButtonGroupSection(
         "Setup MongoDB",
-        "Connect your agent to a MongoDB instance to start managing email data.",
+        isMongoConfigured 
+          ? "✅ MongoDB Cluster is being provisioned/ready." 
+          : "Connect your agent to a MongoDB instance to start managing email data.",
         [
-          { text: "Configure MongoDB", functionName: "showMongoSetupWizard" },
+          { 
+            text: "Configure MongoDB", 
+            functionName: "showMongoSetupWizard",
+            style: isMongoConfigured ? CardService.TextButtonStyle.OUTLINED : CardService.TextButtonStyle.FILLED,
+            disabled: isMongoConfigured
+          },
           { text: "Check Status", functionName: "onCheckStatus" }
         ]
       )

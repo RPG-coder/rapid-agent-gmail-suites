@@ -25,8 +25,8 @@ function createSmartEmailManagerHomeSection() {
   } else if (!isLoggedIn) {
     // State 2: Deployed, Need MongoDB Setup
     buttons.push({ 
-      text: "Login to MongoDB", 
-      functionName: "onLoginToMongoDB", 
+      text: "Configure MongoDB", 
+      functionName: "showMongoSetupWizard", 
       style: CardService.TextButtonStyle.FILLED, 
       color: "#0F9D58" 
     });
