@@ -33,7 +33,8 @@ gcloud services enable run.googleapis.com \
     artifactregistry.googleapis.com \
     cloudresourcemanager.googleapis.com \
     discoveryengine.googleapis.com \
-    dialogflow.googleapis.com
+    dialogflow.googleapis.com \
+    aiplatform.googleapis.com
 ```
 
 5.  **Grant Permissions**: Execute these blocks one by one to ensure your account has the necessary permissions.
@@ -69,6 +70,34 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="user:$USER_EMAIL" \
     --role="roles/serviceusage.serviceUsageAdmin"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="user:$USER_EMAIL" \
+    --role="roles/pubsub.admin"
+```
+
+**4. Grant Agent Service Account Permissions** (Required for the Agent to self-provision)
+```bash
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+SA_EMAIL="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+
+echo "Granting permissions to Service Account: $SA_EMAIL"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/discoveryengine.admin"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/dialogflow.admin"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/serviceusage.serviceUsageAdmin"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/pubsub.admin"
 ```
 
 ## Step 2: Initialize Submodules
