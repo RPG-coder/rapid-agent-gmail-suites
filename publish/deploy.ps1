@@ -15,10 +15,12 @@ if (-not (Test-Path ".clasp.json")) {
 # 3. Ensure dependencies are installed
 Write-Host "Checking dependencies..." -ForegroundColor Yellow
 npm install --silent
+if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: npm install failed." -ForegroundColor Red; exit 1 }
 
 # 4. Build the optimized bundle with Webpack
 Write-Host "Building optimized bundle with Webpack..." -ForegroundColor Yellow
 npm run build
+if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Webpack build failed." -ForegroundColor Red; exit 1 }
 
 # 5. Ensure appsscript.json is in dist (clasp pushes from dist)
 if (!(Test-Path "dist/appsscript.json")) {

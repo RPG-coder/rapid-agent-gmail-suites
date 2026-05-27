@@ -3,10 +3,12 @@
  * Configures the OAuth2 library to connect with MongoDB Atlas.
  */
 
+declare var OAuth2: any;
+
 /**
  * Configures the MongoDB OAuth2 service.
  */
-function getMongoDBService() {
+export function getMongoDBService() {
   const props = PropertiesService.getScriptProperties();
   const clientId = props.getProperty("MONGODB_CLIENT_ID");
   const clientSecret = props.getProperty("MONGODB_CLIENT_SECRET");
@@ -38,13 +40,13 @@ function getMongoDBService() {
 /**
  * Clears the MongoDB OAuth2 service.
  */
-function logOutMongoDB() {
+export function logOutMongoDB() {
   getMongoDBService().reset();
 }
 
 /**
  * Checks if the MongoDB service is authorized.
  */
-function isMongoDBAuthorized() {
+export function isMongoDBAuthorized() {
   return getMongoDBService().hasAccess();
 }

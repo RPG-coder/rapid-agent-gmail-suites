@@ -1,8 +1,12 @@
+import { createPage } from '../atoms/page';
+import { createSmartEmailManagerHomeSection } from '../organisms/sem/smartEmailManagerHome';
+import { createButtonGroupSection } from '../atoms/buttonGroupSection';
+
 /**
  * Page: Home Page
  * Orchestrates the main card using atomic components.
  */
-function createHomePage() {
+export function createHomePage() {
   return createPage(
     "HOME_PAGE",
     "Rapid Agent Gmail Suite",

@@ -4,12 +4,12 @@
  * 
  * @param title The section title.
  * @param description The section description.
- * @param buttons Array of button configurations { text, functionName, style }.
+ * @param buttons Array of button configurations { text, functionName, style, disabled }.
  */
-function createButtonGroupSection(
+export function createButtonGroupSection(
   title: string,
   description: string,
-  buttons: { text: string; functionName: string; style?: any; color?: string }[]
+  buttons: { text: string; functionName: string; style?: any; color?: string; disabled?: boolean }[]
 ) {
   const section = CardService.newCardSection().setHeader(title);
 
@@ -27,7 +27,8 @@ function createButtonGroupSection(
     buttons.forEach((btn) => {
       const button = CardService.newTextButton()
         .setText(btn.text)
-        .setTextButtonStyle(btn.style || CardService.TextButtonStyle.OUTLINED)
+        .setTextButtonStyle(btn.style || (CardService.TextButtonStyle as any).OUTLINED)
+        .setDisabled(!!btn.disabled)
         .setOnClickAction(CardService.newAction().setFunctionName(btn.functionName));
       
       if (btn.color) {

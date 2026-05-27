@@ -7,7 +7,7 @@
 /**
  * Lists all active projects accessible to the user, with pagination.
  */
-function listUserProjects(): any[] {
+export function listUserProjects(): any[] {
   let allProjects: any[] = [];
   let nextPageToken: string | null = null;
   const baseUrl = "https://cloudresourcemanager.googleapis.com/v1/projects";
@@ -43,7 +43,7 @@ function listUserProjects(): any[] {
  * Searches for the 'smart-email-manager-agent' in a specific project.
  * Optimization: Uses direct GET if region is known, otherwise falls back to list.
  */
-function findCloudRunService(projectId: string): any | null {
+export function findCloudRunService(projectId: string): any | null {
   const region = PropertiesService.getScriptProperties().getProperty("GCP_REGION");
   
   // OPTIMIZATION: If we have a region, try a direct GET first (Fast Path)
@@ -93,7 +93,7 @@ function findCloudRunService(projectId: string): any | null {
 /**
  * Main Orchestrator: Scans projects until the agent is found.
  */
-function discoverBackend() {
+export function discoverBackend() {
   const projects = listUserProjects();
   console.log(`Scanning ${projects.length} projects for agent...`);
   

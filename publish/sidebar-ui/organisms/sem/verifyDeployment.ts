@@ -1,8 +1,11 @@
+import { createPage } from '../../atoms/page';
+import { createButtonGroupSection } from '../../atoms/buttonGroupSection';
+
 /**
  * Organism: Verify Deployment Page
  * Renders the verification steps for the Smart Email Manager.
  */
-function createVerifyDeploymentPage() {
+export function createVerifyDeploymentPage() {
   const props = PropertiesService.getScriptProperties();
   const projectId = props.getProperty("GCP_PROJECT_ID");
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
@@ -64,7 +67,7 @@ function createVerifyDeploymentPage() {
           { 
             text: "Configure MongoDB", 
             functionName: "showMongoSetupWizard",
-            style: isMongoConfigured ? CardService.TextButtonStyle.OUTLINED : CardService.TextButtonStyle.FILLED,
+            style: isMongoConfigured ? (CardService.TextButtonStyle as any).OUTLINED : CardService.TextButtonStyle.FILLED,
             disabled: isMongoConfigured
           },
           { text: "Check Status", functionName: "onCheckStatus" }

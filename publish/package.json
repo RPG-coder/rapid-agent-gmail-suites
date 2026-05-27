@@ -13,7 +13,7 @@
   "devDependencies": {
     "@google/clasp": "^2.4.2",
     "@types/google-apps-script": "^1.0.83",
-    "gas-webpack-plugin": "^2.6.1",
+    "gas-webpack-plugin": "^2.6.0",
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.5",
     "webpack": "^5.91.0",

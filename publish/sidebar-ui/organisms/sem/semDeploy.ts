@@ -1,13 +1,17 @@
+import { createPage } from '../../atoms/page';
+import { createButtonGroupSection } from '../../atoms/buttonGroupSection';
+
 /**
  * Organism: SEM Deploy Page
  * Renders the deployment page for Smart Email Manager.
  */
-function createSEMDeployPage(e?: any) {
+export function createSEMDeployPage(e?: any) {
   const sections = [];
   const selectedRegion = e?.formInput?.deployment_region;
   
   // Use plain email to avoid base64 decoding issues in terminal
-  const setupToken = Session.getActiveUser().getEmail();
+  const userEmail = Session.getActiveUser().getEmail();
+  const setupToken = userEmail; // Simplified for now
 
   // --- Step 1: Prerequisite ---
   sections.push(

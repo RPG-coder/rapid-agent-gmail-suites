@@ -1,8 +1,10 @@
+import { createPage } from '../../atoms/page';
+
 /**
  * Organism: MongoDB Setup Wizard
  * Renders a step-by-step form to capture MongoDB API keys.
  */
-function createMongoSetupWizardPage() {
+export function createMongoSetupWizardPage() {
   const sections = [];
 
   // --- Step 1: Instructions ---

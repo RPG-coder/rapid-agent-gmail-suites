@@ -1,3 +1,5 @@
+import { createFooterSection } from './footer';
+
 /**
  * Atom: Page
  * A reusable layout for creating standardized CardService cards.
@@ -8,7 +10,7 @@
  * @param description Small description text.
  * @param sections Array of CardService.CardSection to be added to the card.
  */
-function createPage(
+export function createPage(
   name: string,
   title: string,
   subtitle: string,

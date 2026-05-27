@@ -2,7 +2,7 @@
  * Atom: Footer
  * Renders the standardized footer.
  */
-function createFooterSection() {
+export function createFooterSection() {
   return CardService.newCardSection()
     .addWidget(
       CardService.newDecoratedText()

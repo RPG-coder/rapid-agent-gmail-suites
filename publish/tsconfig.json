@@ -2,15 +2,15 @@
   "compilerOptions": {
     "target": "ESNext",
     "lib": ["ESNext"],
-    "module": "Preserve",
+    "module": "ESNext",
     "noLib": false,
     "sourceMap": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "noImplicitAny": false,
     "strict": false,
-    "noEmit": true,
+    "noEmit": false,
     "types": ["google-apps-script"]
   },
   "include": ["sidebar-ui/**/*.ts"]

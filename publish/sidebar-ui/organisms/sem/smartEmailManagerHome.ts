@@ -1,10 +1,13 @@
+import { getCloudRunUrl, isUserLoggedInMongoDB } from '../../index';
+import { createButtonGroupSection } from '../../atoms/buttonGroupSection';
+
 /**
  * Organism: Smart Email Manager Home Section
  * Handles conditional UI based on deployment and login status.
  * 
  * Intent: Flow "Deploy" > "Login to MongoDB" > ("View settings" & "Check connections")
  */
-function createSmartEmailManagerHomeSection() {
+export function createSmartEmailManagerHomeSection() {
   const cloudRunUrl = getCloudRunUrl();
   const isDeployed = !cloudRunUrl.includes("putchakai.com");
   const isLoggedIn = isDeployed && isUserLoggedInMongoDB();
