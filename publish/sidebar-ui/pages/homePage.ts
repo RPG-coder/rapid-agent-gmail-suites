@@ -20,7 +20,7 @@ export function createHomePage() {
         [
           { text: "View settings", functionName: "onViewSettings" },
           { text: "Ask Mailbox Questions", functionName: "onAskQuestions" },
-          { text: "Check connections", functionName: "onCheckConnections" }
+          { text: "Verify & Link Inbox", functionName: "onCheckConnections" }
         ]
       ),
       createButtonGroupSection(
@@ -28,7 +28,7 @@ export function createHomePage() {
         "Manage your User Preferences in one place. Your email manager will keep it's pace in line with your inbox mails and your activities. Next time it relieves you lo seduce burden at managing emails based on recognized personalization.",
         [
           { text: "View settings", functionName: "onViewSettings" },
-          { text: "Check connections", functionName: "onCheckConnections" }
+          { text: "Verify & Link Inbox", functionName: "onCheckConnections" }
         ]
       )
     ]

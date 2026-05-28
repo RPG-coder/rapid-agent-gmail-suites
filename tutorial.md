@@ -165,4 +165,20 @@ Once the deployment is successful, gcloud will output your **Service URL** (e.g.
 
 The add-on will automatically connect to your agent, retrieve your Project ID, and finalize the setup.
 
-Congratulations! Your Smart Email Manager Agent is now live.
+## Step 5: Activate Gmail Watcher (FINAL STEP)
+
+Even after deployment, Google requires a manual "Handshake" to allow notifications to flow from Gmail to your new Pub/Sub topic.
+
+1.  **Initialize Infra**: Ensure you have clicked **"Initialize Infrastructure"** in the Gmail Sidebar and it has finished.
+2.  **Run Handshake**: Click the link below to open the final activation step in Cloud Shell:
+    
+    [**🚀 Click to Activate Gmail Watcher**](https://shell.google.com/cloudshell/editor?cloudshell_tutorial=final-handshake.md)
+
+    *Alternative: If the link above doesn't open the panel, just type this in your Cloud Shell terminal:*
+    ```bash
+    teachme final-handshake.md
+    ```
+
+3.  **Check Connection**: Once done, return to Gmail and click **"Check Connection"**. It should now turn green!
+
+Congratulations! Your Smart Email Manager Agent is now live and watching your inbox.

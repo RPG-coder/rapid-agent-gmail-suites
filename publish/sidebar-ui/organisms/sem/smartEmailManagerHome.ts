@@ -36,7 +36,7 @@ export function createSmartEmailManagerHomeSection() {
   } else {
     // State 3: Fully Setup
     buttons.push({ text: "View settings", functionName: "showSmartEmailManager" });
-    buttons.push({ text: "Check connections", functionName: "onCheckConnections" });
+    buttons.push({ text: "Verify & Link Inbox", functionName: "onCheckConnections" });
   }
 
   return createButtonGroupSection(title, description, buttons);

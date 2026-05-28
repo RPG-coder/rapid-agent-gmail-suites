@@ -392,27 +392,33 @@ export function setupGmailWatch() {
   const props = PropertiesService.getScriptProperties();
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
   const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
-  
+
   if (!cloudRunUrl) return "Error: Cloud Run URL missing.";
 
   try {
     const gmailToken = ScriptApp.getOAuthToken();
-    const url = `${cloudRunUrl}/api/start-watch?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
-    
+    // Use the new check-connection endpoint which is safer and detects handshake issues
+    const url = `${cloudRunUrl}/api/check-connection?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
+
     const response = UrlFetchApp.fetch(url, { method: "post", muteHttpExceptions: true });
     const result = JSON.parse(response.getContentText());
-    
+
     if (response.getResponseCode() === 200) {
-      props.setProperty("GMAIL_WATCH_EXPIRATION", result.expiration);
-      return "Success: Gmail Watch active until " + new Date(parseInt(result.expiration)).toLocaleString();
+      if (result.status === "connected") {
+        props.setProperty("GMAIL_WATCH_ACTIVE", "true");
+        return "✅ Success: Gmail Watch is active! Your inbox is connected.";
+      } else if (result.status === "handshake_required") {
+        return "⚠️ Handshake Required: Please run the activation command in Cloud Shell to link your project. (See Step 5 in tutorial.md)";
+      } else {
+        return "Backend Status: " + (result.message || "Unknown state");
+      }
     } else {
-      return "Backend Watch Error: " + (result.detail?.error?.message || result.detail || "Watch failed");
+      return "Backend Error: " + (result.detail?.error?.message || result.detail || "Verification failed");
     }
   } catch (error) {
     return "Network Error: " + error.toString();
   }
 }
-
 // Assign global functions to the 'global' object for gas-webpack-plugin
 declare var global: any;
 var gasGlobal: any = typeof global !== 'undefined' ? global : this;
