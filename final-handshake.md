@@ -7,7 +7,7 @@ Because of Google's security policies, the easiest way to link your Gmail accoun
     ```bash
     gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
     ```
-2.  **Open Settings**: In your Apps Script editor, click the **Settings Gear (⚙️)**.
+2.  **Open Settings**: Open your project in the [Apps Script Editor](https://script.google.com/home) and click the **Settings Gear (⚙️)** on the left sidebar.
 3.  **Change Project**: Click **"Change project"** under the GCP Project section.
 4.  **Paste & Set**: Paste the project number from Step 1 and click **"Set project"**.
 

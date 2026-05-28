@@ -44,7 +44,7 @@ For Gmail Push Notifications to work, your Apps Script project must be linked to
     ```bash
     gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
     ```
-2.  **Open Apps Script**: In your Apps Script editor, click the **Settings** (gear icon) on the left.
+2.  **Open Apps Script**: Open your project in the [Apps Script Editor](https://script.google.com/home) and click the **Settings** (gear icon) on the left.
 3.  **Change Project**: Scroll down to **Google Cloud Platform (GCP) Project** and click **Change project**.
 4.  **Paste & Set**: Paste your **Project Number** and click **Set project**.
 
