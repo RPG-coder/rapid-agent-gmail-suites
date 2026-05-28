@@ -216,6 +216,7 @@ export function onInitDBDeployment(e: any) {
 
     if (response.getResponseCode() === 200) {
       props.setProperty("MONGODB_PROJECT_ID", result.mongo_project_id);
+      props.setProperty("MONGODB_PASSWORD", result.db_pass);
       props.setProperty("MONGO_PUBLIC_KEY", publicKey);
       props.setProperty("MONGO_PRIVATE_KEY", private_key);
       props.setProperty("SETUP_STATUS", "DB_PROVISIONING");
@@ -319,8 +320,10 @@ export function onVerifyDB(e: any) {
     
     else if (result.status === "ready_to_link") {
       // The cluster is IDLE, we got the SRV. Now tell backend to use it.
-      // Note: In production, we'd inject user:pass. Here we just update the env for the instance.
-      UrlFetchApp.fetch(`${cloudRunUrl}/api/update-env?mongo_uri=${encodeURIComponent(result.srv_uri)}`, { method: "post" });
+      const dbPass = props.getProperty("MONGODB_PASSWORD") || "password_missing";
+      const fullUri = result.srv_uri.replace("mongodb+srv://", `mongodb+srv://agent_user:${encodeURIComponent(dbPass)}@`);
+      
+      UrlFetchApp.fetch(`${cloudRunUrl}/api/update-env?mongo_uri=${encodeURIComponent(fullUri)}`, { method: "post" });
       
       props.setProperty("SETUP_STATUS", "COMPLETED");
       props.setProperty("MONGODB_STATUS", "READY");
