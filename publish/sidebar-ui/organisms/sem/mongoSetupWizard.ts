@@ -87,7 +87,36 @@ export function createMongoSetupWizardPage() {
       .setBackgroundColor("#9C27B0")
       .setOnClickAction(CardService.newAction().setFunctionName("onVerifyDB"));
     buttonSet.addButton(verifyButton);
+    
+    // Add a way to skip if the user knows it's fine or wants to test Pub/Sub
+    const skipButton = CardService.newTextButton()
+      .setText("Skip to Homepage (Manual)")
+      .setOnClickAction(CardService.newAction().setFunctionName("onForceCompleteSetup"));
+    buttonSet.addButton(skipButton);
   }
+  
+  else if (setupStatus === "COMPLETED") {
+    actionSection.addWidget(CardService.newTextParagraph().setText(
+      '<font color="#0F9D58"><b>Setup Complete!</b> Your environment is fully provisioned.</font>'
+    ));
+    
+    const homeButton = CardService.newTextButton()
+      .setText("Go to Homepage")
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setBackgroundColor("#0F9D58")
+      .setOnClickAction(CardService.newAction().setFunctionName("onHomepage"));
+    buttonSet.addButton(homeButton);
+  }
+
+  // Always show a Reset button at the bottom for recovery
+  const resetSection = CardService.newCardSection()
+    .addWidget(
+      CardService.newTextButton()
+        .setText("Reset Setup State")
+        .setDisabled(setupStatus === "START")
+        .setOnClickAction(CardService.newAction().setFunctionName("onResetSetupState"))
+    );
+  sections.push(resetSection);
 
   actionSection.addWidget(buttonSet);
   sections.push(actionSection);

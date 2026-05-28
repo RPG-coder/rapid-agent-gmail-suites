@@ -6,7 +6,8 @@
   "urlFetchWhitelist": [
     "https://*.run.app/",
     "https://run.googleapis.com/",
-    "https://cloudresourcemanager.googleapis.com/"
+    "https://cloudresourcemanager.googleapis.com/",
+    "https://gmail.googleapis.com/"
   ],
   "oauthScopes": [
     "https://www.googleapis.com/auth/gmail.readonly",

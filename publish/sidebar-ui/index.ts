@@ -46,8 +46,9 @@ export function onViewSettings(e: any) {
 }
 
 export function onCheckConnections(e: any) {
+  const result = setupGmailWatch();
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Checking connections..."))
+    .setNotification(CardService.newNotification().setText("Diagnostic: " + result))
     .build();
 }
 
@@ -215,6 +216,8 @@ export function onInitDBDeployment(e: any) {
 
     if (response.getResponseCode() === 200) {
       props.setProperty("MONGODB_PROJECT_ID", result.mongo_project_id);
+      props.setProperty("MONGO_PUBLIC_KEY", publicKey);
+      props.setProperty("MONGO_PRIVATE_KEY", private_key);
       props.setProperty("SETUP_STATUS", "DB_PROVISIONING");
 
       return CardService.newActionResponseBuilder()
@@ -289,9 +292,19 @@ export function onBuildGCPInfrastructure(e: any) {
 export function onVerifyDB(e: any) {
   const props = PropertiesService.getScriptProperties();
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
+  
+  const mongoProjectId = props.getProperty("MONGODB_PROJECT_ID");
+  // These are stored in script properties during Step 1
+  const publicKey = props.getProperty("MONGO_PUBLIC_KEY");
+  const privateKey = props.getProperty("MONGO_PRIVATE_KEY");
 
   try {
-    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/verify-db`, { muteHttpExceptions: true });
+    let url = `${cloudRunUrl}/api/verify-db`;
+    if (mongoProjectId && publicKey && privateKey) {
+      url += `?mongo_project_id=${encodeURIComponent(mongoProjectId)}&public_key=${encodeURIComponent(publicKey)}&private_key=${encodeURIComponent(privateKey)}`;
+    }
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     const result = JSON.parse(response.getContentText());
 
     if (result.status === "ready") {
@@ -302,9 +315,26 @@ export function onVerifyDB(e: any) {
         .setNotification(CardService.newNotification().setText("Success: Database is now active!"))
         .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
         .build();
-    } else {
+    } 
+    
+    else if (result.status === "ready_to_link") {
+      // The cluster is IDLE, we got the SRV. Now tell backend to use it.
+      // Note: In production, we'd inject user:pass. Here we just update the env for the instance.
+      UrlFetchApp.fetch(`${cloudRunUrl}/api/update-env?mongo_uri=${encodeURIComponent(result.srv_uri)}`, { method: "post" });
+      
+      props.setProperty("SETUP_STATUS", "COMPLETED");
+      props.setProperty("MONGODB_STATUS", "READY");
+      setupGmailWatch();
+      
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Still provisioning... Try again in a minute."))
+        .setNotification(CardService.newNotification().setText("Success: Database linked and active!"))
+        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
+        .build();
+    }
+    
+    else {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText(result.message || "Still provisioning..."))
         .build();
     }
   } catch (error) {
@@ -315,12 +345,43 @@ export function onVerifyDB(e: any) {
 }
 
 /**
+ * Recovery: Reset the setup state machine
+ */
+export function onResetSetupState(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty("SETUP_STATUS");
+  props.deleteProperty("MONGODB_PROJECT_ID");
+  props.deleteProperty("MONGODB_STATUS");
+  
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("Setup state reset. You can start over."))
+    .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
+    .build();
+}
+
+/**
+ * Override: Manually mark setup as complete
+ */
+export function onForceCompleteSetup(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty("SETUP_STATUS", "COMPLETED");
+  props.setProperty("MONGODB_STATUS", "READY");
+  
+  setupGmailWatch();
+  
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("Setup manually completed. Starting Gmail Watch..."))
+    .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
+    .build();
+}
+
+/**
  * Refreshes the Gmail Watch and Agent status.
  */
 export function onCheckStatus(e: any) {
-  setupGmailWatch();
+  const result = setupGmailWatch();
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Status checked. Gmail Push Notifications refreshed."))
+    .setNotification(CardService.newNotification().setText(result))
     .build();
 }
 
@@ -331,7 +392,7 @@ export function setupGmailWatch() {
   const props = PropertiesService.getScriptProperties();
   const topicName = props.getProperty("GCP_PUB_SUB_TOPIC");
   
-  if (!topicName) return;
+  if (!topicName) return "Error: No Pub/Sub topic found. Please reset setup.";
 
   const payload = { topicName: topicName, labelIds: ["INBOX"] };
   const options: any = {
@@ -345,11 +406,15 @@ export function setupGmailWatch() {
   try {
     const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", options);
     const result = JSON.parse(response.getContentText());
+    
     if (response.getResponseCode() === 200) {
       props.setProperty("GMAIL_WATCH_EXPIRATION", result.expiration);
+      return "Success: Gmail Watch active until " + new Date(parseInt(result.expiration)).toLocaleString();
+    } else {
+      return "Gmail API Error: " + (result.error?.message || "Watch failed");
     }
   } catch (error) {
-    console.error("Gmail Watch Error: " + error.toString());
+    return "Network Error: " + error.toString();
   }
 }
 
@@ -372,4 +437,6 @@ gasGlobal.showMongoSetupWizard = showMongoSetupWizard;
 gasGlobal.onInitDBDeployment = onInitDBDeployment;
 gasGlobal.onBuildGCPInfrastructure = onBuildGCPInfrastructure;
 gasGlobal.onVerifyDB = onVerifyDB;
+gasGlobal.onResetSetupState = onResetSetupState;
+gasGlobal.onForceCompleteSetup = onForceCompleteSetup;
 gasGlobal.onCheckStatus = onCheckStatus;
