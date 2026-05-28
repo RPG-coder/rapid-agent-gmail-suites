@@ -34,8 +34,20 @@ gcloud services enable run.googleapis.com \
     cloudresourcemanager.googleapis.com \
     discoveryengine.googleapis.com \
     dialogflow.googleapis.com \
-    aiplatform.googleapis.com
+    aiplatform.googleapis.com \
+    gmail.googleapis.com
 ```
+
+### 1.5 Link Apps Script to GCP Project (CRITICAL)
+For Gmail Push Notifications to work, your Apps Script project must be linked to your GCP Project:
+1.  In your Apps Script editor, click the **Settings** (gear icon) on the left.
+2.  Scroll down to **Google Cloud Platform (GCP) Project**.
+3.  Click **Change project**.
+4.  Enter your **Project Number** (not Project ID). You can get it by running:
+    ```bash
+    gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
+    ```
+5.  Click **Set project**.
 
 5.  **Grant Permissions**: Execute these blocks one by one to ensure your account has the necessary permissions.
 **1. Initialize Identity**
