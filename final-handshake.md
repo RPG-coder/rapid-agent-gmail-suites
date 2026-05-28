@@ -1,20 +1,20 @@
 # Final Step: Activate Your Agent
 
-To allow Gmail to send notifications to your new infrastructure, we need to "Watch" your inbox. This requires a two-step handshake in Cloud Shell.
-## Step 1: Enable Gmail Permissions
-By default, Cloud Shell only has access to Google Cloud. Run this command to grant the terminal permission to manage your Gmail settings:
+Because of Google's security policies, the easiest way to link your Gmail account is through a one-time "Project Handshake" in the Apps Script settings.
 
-```bash
-gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.settings.basic"
-```
-*Follow the link, authorize your account, and paste the code back here.*
+## Step 1: Link your Apps Script to GCP
+1.  **Get Project Number**: Run this in your Cloud Shell terminal:
+    ```bash
+    gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
+    ```
+2.  **Open Settings**: In your Apps Script editor, click the **Settings Gear (⚙️)**.
+3.  **Change Project**: Click **"Change project"** under the GCP Project section.
+4.  **Paste & Set**: Paste the project number from Step 1 and click **"Set project"**.
 
-## Step 2: Run the Handshake
-Click the "Run" icon in the code block below to activate the connection. 
-
-```bash
-curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" -H "Content-Type: application/json" -d "{\"topicName\": \"projects/$(gcloud config get-value project)/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" "https://gmail.googleapis.com/gmail/v1/users/me/watch"
-```
+## Step 2: Return to Gmail
+1.  Refresh your Gmail tab.
+2.  Click the **"Verify & Link Inbox"** button in the Sidebar.
+3.  **It should now turn green!** 🟢
 
 
 ```
