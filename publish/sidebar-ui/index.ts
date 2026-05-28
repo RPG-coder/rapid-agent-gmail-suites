@@ -386,32 +386,27 @@ export function onCheckStatus(e: any) {
 }
 
 /**
- * Gmail: Setup Push Notifications
+ * Gmail: Setup Push Notifications via Backend Proxy
  */
 export function setupGmailWatch() {
   const props = PropertiesService.getScriptProperties();
-  const topicName = props.getProperty("GCP_PUB_SUB_TOPIC");
+  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
+  const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
   
-  if (!topicName) return "Error: No Pub/Sub topic found. Please reset setup.";
-
-  const payload = { topicName: topicName, labelIds: ["INBOX"] };
-  const options: any = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  };
+  if (!cloudRunUrl) return "Error: Cloud Run URL missing.";
 
   try {
-    const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", options);
+    const gmailToken = ScriptApp.getOAuthToken();
+    const url = `${cloudRunUrl}/api/start-watch?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
+    
+    const response = UrlFetchApp.fetch(url, { method: "post", muteHttpExceptions: true });
     const result = JSON.parse(response.getContentText());
     
     if (response.getResponseCode() === 200) {
       props.setProperty("GMAIL_WATCH_EXPIRATION", result.expiration);
       return "Success: Gmail Watch active until " + new Date(parseInt(result.expiration)).toLocaleString();
     } else {
-      return "Gmail API Error: " + (result.error?.message || "Watch failed");
+      return "Backend Watch Error: " + (result.detail?.error?.message || result.detail || "Watch failed");
     }
   } catch (error) {
     return "Network Error: " + error.toString();
