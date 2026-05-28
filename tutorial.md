@@ -172,7 +172,7 @@ Even after deployment, Google requires a manual "Handshake" to allow notificatio
 1.  **Initialize Infra**: Ensure you have clicked **"Initialize Infrastructure"** in the Gmail Sidebar and it has finished.
 2.  **Run Handshake**: Click the link below to open the final activation step in Cloud Shell:
     
-    [**🚀 Click to Activate Gmail Watcher**](https://shell.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/RPG-coder/rapid-agent-gmail-suites.git&cloudshell_tutorial=final-handshake.md)
+    [**🚀 Click to Activate Gmail Watcher**](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/RPG-coder/rapid-agent-gmail-suites.git&cloudshell_tutorial=final-handshake.md)
 
     *Alternative: If the link above doesn't open the panel, just type this in your Cloud Shell terminal:*
     ```bash
