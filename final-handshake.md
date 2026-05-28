@@ -11,13 +11,21 @@ Because of Google's security policies, the easiest way to link your Gmail accoun
 3.  **Change Project**: Click **"Change project"** under the GCP Project section.
 4.  **Paste & Set**: Paste the project number from Step 1 and click **"Set project"**.
 
-## Step 2: Return to Gmail
+## Step 2: Ensure Backend Configuration (Persist Settings)
+Run these commands in Cloud Shell to ensure your agent knows its own identity and can talk to your database reliably.
+
+1.  **Inject Service URL**: 
+    ```bash
+    SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)')
+    gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region us-central1
+    ```
+
+2.  **Inject Database URI**: (Replace `[YOUR_PASSWORD]` and `[CLUSTER_URL]` with your real values)
+    ```bash
+    gcloud run services update smart-email-manager-agent --set-env-vars MONGO_URI='mongodb+srv://agent_user:[YOUR_PASSWORD]@[CLUSTER_URL]/?appName=email-cluster' --region us-central1
+    ```
+
+## Step 3: Return to Gmail
 1.  Refresh your Gmail tab.
 2.  Click the **"Verify & Link Inbox"** button in the Sidebar.
 3.  **It should now turn green!** 🟢
-
-
-```
-
-## Step 2: Return to Gmail
-Once you see a successful response above (a JSON object with an `expiration` timestamp), return to the Gmail Sidebar and click **"Check Connection"**. It should now turn green!
