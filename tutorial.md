@@ -18,7 +18,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     *   If you have a personal (@gmail.com) account, add your email to **Test users**.
     *   Run the authentication command:
         ```bash
-        gcloud auth login --update-adc --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.modify"
+        gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.modify"
         ```
 
 4.  **Set Project**:
