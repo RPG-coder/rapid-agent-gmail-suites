@@ -31,7 +31,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
         ```bash
         gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
         ```
-    *   Open Apps Script Editor. Go to "Rapid Agent Suite" Project Settings (Gear) > Change Project > Paste the Number.
+    *   Open [Apps Script Editor](https://script.google.com/home). Go to "Rapid Agent Suite" Project Settings (Gear) > Change Project > Paste the Number.
 
 2.  **Grant Deployment Roles**:
     ```bash
@@ -50,6 +50,12 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     Goto Agent folder
     ```bash
     cd agents/smart-email-manager
+    ```
+
+    Ensure variables are set (Use your chosen region, e.g., us-central1)
+    ```bash
+    PROJECT_ID=$(gcloud config get-value project)
+    CHOSEN_REGION=${CHOSEN_REGION:-us-central1}
     ```
 
     If not created before, create artifacts repository
