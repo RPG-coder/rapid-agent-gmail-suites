@@ -27,10 +27,20 @@ Before you begin, ensure you have the following accounts and keys:
     git submodule update --init --recursive
     ```
 
-3.  **Set Project**:
-    ```bash
-    gcloud config set project YOUR_PROJECT_ID
-    ```
+3.  **Create or Select Project**:
+    It is highly recommended to use a **fresh GCP Project** for this setup.
+    
+    *   **Create New**:
+        ```bash
+        gcloud projects create YOUR_PROJECT_ID --name="Smart Email Manager"
+        gcloud config set project YOUR_PROJECT_ID
+        ```
+        *(Optional) Enable billing in the [GCP Console](https://console.cloud.google.com/billing) if prompted.*
+    
+    *   **Select Existing**:
+        ```bash
+        gcloud config set project YOUR_PROJECT_ID
+        ```
 
 4.  **Enable Core APIs**:
     ```bash
