@@ -46,10 +46,8 @@ export function onViewSettings(e: any) {
 }
 
 export function onCheckConnections(e: any) {
-  const result = setupGmailWatch();
-  return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Diagnostic: " + result))
-    .build();
+  const result = onVerifyInstallation(e);
+  return result;
 }
 
 export function onAskQuestions(e: any) {
@@ -284,6 +282,45 @@ export function onBuildGCPInfrastructure(e: any) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification().setText("System Error: " + error.toString()))
       .build();
+  }
+}
+
+/**
+ * Gmail: Setup Push Notifications via Backend Proxy
+ */
+export function verifySystem() {
+  const props = PropertiesService.getScriptProperties();
+  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
+  const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
+
+  if (!cloudRunUrl) return "Error: Cloud Run URL missing. Please run Step 4 in tutorial.md.";
+
+  try {
+    const gmailToken = ScriptApp.getOAuthToken();
+    const url = `${cloudRunUrl}/api/verify-system?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
+
+    const response = UrlFetchApp.fetch(url, { method: "get", muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      // Check for any warnings/errors in the stack
+      const issues = Object.keys(result).filter(k => result[k].status !== "ok");
+      
+      if (issues.length === 0) {
+        props.setProperty("SETUP_STATUS", "COMPLETED");
+        return "✅ ALL SYSTEMS GREEN: Your agent is fully deployed and watching your inbox!";
+      } else {
+        let msg = "⚠️ Partial Setup:\n";
+        issues.forEach(k => {
+          msg += `- ${k.toUpperCase()}: ${result[k].message}\n`;
+        });
+        return msg;
+      }
+    } else {
+      return "Backend Verification Error: " + (result.detail || "Connection failed");
+    }
+  } catch (error) {
+    return "Network Error: " + error.toString();
   }
 }
 
