@@ -1,30 +1,26 @@
 # Master Deployment Guide: Smart Email Manager
 
-This tutorial will help you deploy the entire Smart Email Manager stack (Cloud Run, Vertex AI, Pub/Sub, and Gmail Link) in one session.
+This guide provides the "Golden Path" to deploy the Smart Email Manager stack (Cloud Run, Vertex AI, Pub/Sub, and Gmail Link).
 
 ## Step 1: Initialize Environment
 
-1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into the terminal below.
+1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into your terminal.
     *This sets your `$CHOSEN_REGION` and `$SETUP_TOKEN`.*
 
-2.  **Pull Submodules**:
+2.  **Pull Submodules**: Ensure you have the latest agent code.
     ```bash
     git submodule update --init --recursive
     ```
 
-3.  **Authenticate** (Skip if using Cloud Shell):
-    ```bash
-    gcloud auth application-default login
-    ```
-
-4.  **Set Project**:
+3.  **Set Project**:
     ```bash
     gcloud config set project YOUR_PROJECT_ID
     ```
 
-5.  **Enable Core APIs**:
+4.  **Enable Core APIs**:
     ```bash
-    gcloud services enable run.googleapis.com \
+    gcloud services enable \
+        run.googleapis.com \
         cloudbuild.googleapis.com \
         artifactregistry.googleapis.com \
         discoveryengine.googleapis.com \
@@ -41,7 +37,8 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
         ```bash
         gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
         ```
-    *   Open [Apps Script Editor](https://script.google.com/home). Go to "Rapid Agent Suite" Project Settings (Gear) > Change Project > Paste the Number.
+    *   Open [Apps Script Editor](https://script.google.com/home).
+    *   Go to **Project Settings (Gear icon)** > **Change Project** > Paste the Project Number.
 
 2.  **Grant Deployment Roles**:
     ```bash
@@ -56,34 +53,23 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 ## Step 3: Deploy Backend (Cloud Run)
 
 1.  **Build Container**:
-
-    Goto Agent folder
     ```bash
     cd agents/smart-email-manager
-    ```
-
-    Ensure variables are set (Use your chosen region, e.g., us-central1)
-    ```bash
+    
+    # Initialize variables if not set
     PROJECT_ID=$(gcloud config get-value project)
     CHOSEN_REGION=${CHOSEN_REGION:-us-central1}
-    ```
 
-    If not created before, create artifacts repository
-    ```bash
-    gcloud artifacts repositories \
-        create agent-repo \
+    # Create repository
+    gcloud artifacts repositories create agent-repo \
         --repository-format=docker \
-        --location=$CHOSEN_REGION || \
-        true
-    ```
+        --location=$CHOSEN_REGION || true
 
-    Build Container:
-    ```bash
+    # Build and Tag
     gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent .
     ```
 
 2.  **Launch Service**:
-
     Deploy the agent:
     ```bash
     gcloud run deploy smart-email-manager-agent \
@@ -91,13 +77,9 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
       --platform managed --region $CHOSEN_REGION --allow-unauthenticated --port 8080
     ```
 
-    Save URL for next steps:
-    ```bash
-    SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
-    ```
-
     Update service with its own URL:
     ```bash
+    SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
     gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
     ```
 
@@ -117,19 +99,17 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
 2.  **Activate Gmail Watch (The Handshake)**:
 
-    **Option A: Terminal (May be blocked by Google Security)**
-    This requires you to have completed the Apps Script link in Step 2!
-    ```bash
-    curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" -H "Content-Type: application/json" -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" "https://gmail.googleapis.com/gmail/v1/users/me/watch"
-    ```
+    To bypass security blocks on personal accounts, we use Apps Script to perform the handshake.
 
-    **Option B: Apps Script (Recommended - Bypasses Security Block)**
-    If Option A fails with "App Blocked", use this:
-    1. Open your **Apps Script Editor** (the one from Step 2).
-    2. Paste this code into a new script file:
+    1. **Pre-flight Check (Unblock App)**:
+       * Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) in GCP Console.
+       * Set User Type to **External**.
+       * Click **ADD USERS** under "Test users", enter your email, and click **SAVE**.
+    2. Open your **Apps Script Editor**.
+    3. Paste this function into a script file:
        ```javascript
        function activateGmailWatch() {
-         GmailApp.getInboxUnreadCount(); // Triggers scope request
+         GmailApp.getInboxUnreadCount(); // Triggers permission prompt
          const projectId = 'YOUR_PROJECT_ID'; 
          const options = {
            method: "post",
@@ -145,9 +125,8 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
          Logger.log(response.getContentText());
        }
        ```
-    3. Replace `YOUR_PROJECT_ID` with your actual Project ID.
-    4. Click **Run**. Click **Advanced** > **Go to [Project] (unsafe)** when prompted.
-
+    4. Replace `YOUR_PROJECT_ID` with your actual Project ID and click **Run**.
+    5. Click **Advanced** > **Go to [Project] (unsafe)** when the permission popup appears.
 
 ## Step 5: Finalize in Gmail
 
