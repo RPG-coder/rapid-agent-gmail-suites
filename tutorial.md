@@ -8,11 +8,11 @@ Before you begin, ensure you have the following accounts and keys:
 
 1.  **MongoDB Atlas**:
     *   Create a free account at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register).
-    *   **Create a Project**: If not automatically prompted, click "New Project" in the Atlas dashboard and give it a name.
-    *   Create a **New Cluster** (Shared/Free Tier).
-    *   Go to **Database Access** and create a user with "Read and write to any database" permissions.
-    *   Go to **Network Access** and click **"Add IP Address"** -> **"Allow Access from Anywhere"** (0.0.0.0/0) for development.
-    *   Click **Connect** -> **Drivers** -> **Python** and copy your **Connection String (MONGO_URI)**.
+    *   **Create a Project**: If not automatically prompted, click **"New Project"** (ex: `Rapid-Agent`).
+    *   **Create a Cluster**: Create a **"New Cluster"** (Shared/Free Tier, ex: `email-cluster`).
+    *   **Database Access**: On the left sidebar, go to **"Security"** > **"Database Access"**. Select your user (**Edit**) > In the **Built-in Roles** dropdown, select **"Read and write to any database"** and click **"Update User"**.
+    *   **Network Access**: On the left sidebar, go to **"Security"** > **"Network Access"**. Add **`0.0.0.0/0`** (Allow Access from Anywhere) for development.
+    *   **Connect**: Go to **"Database"** > **"Clusters"**. Click **"Connect"** on your cluster (ex: `email-cluster`) -> **Drivers** -> **Python**. Copy your **Connection String (MONGO_URI)**.
 
 2.  **Voyage AI**:
     *   Sign up at [voyageai.com](https://www.voyageai.com/).
