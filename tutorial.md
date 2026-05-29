@@ -114,10 +114,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
     This requires you to have completed the Apps Script link in Step 2!
     ```bash
-    curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
-      -H "Content-Type: application/json" \
-      -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" \
-      "https://gmail.googleapis.com/gmail/v1/users/me/watch"
+    curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" -H "Content-Type: application/json" -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" "https://gmail.googleapis.com/gmail/v1/users/me/watch"
     ```
 
 ## Step 5: Finalize in Gmail
