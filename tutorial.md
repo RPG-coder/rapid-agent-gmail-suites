@@ -78,13 +78,21 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     ```
 
 2.  **Launch Service**:
+
+    Deploy the agent:
     ```bash
     gcloud run deploy smart-email-manager-agent \
       --image $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent \
       --platform managed --region $CHOSEN_REGION --allow-unauthenticated --port 8080
-    
-    # Save URL for next steps
+    ```
+
+    Save URL for next steps:
+    ```bash
     SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
+    ```
+
+    Update service with its own URL:
+    ```bash
     gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
     ```
 
