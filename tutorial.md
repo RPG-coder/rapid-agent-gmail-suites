@@ -69,9 +69,10 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
     Build Container:
     ```bash
-    gcloud builds submit --tag \
-        $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent \
-        .
+    # Verify Dockerfile exists
+    ls Dockerfile
+    
+    gcloud builds submit . --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent
     ```
 
 2.  **Launch Service**:
