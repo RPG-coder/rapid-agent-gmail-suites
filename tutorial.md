@@ -1,196 +1,91 @@
-# Deploying Smart Email Manager Agent
+# Master Deployment Guide: Smart Email Manager
 
-Welcome to the deployment tutorial for the Smart Email Manager Agent! This guide will help you deploy your agent to Google Cloud Run in your selected region.
+This tutorial will help you deploy the entire Smart Email Manager stack (Cloud Run, Vertex AI, Pub/Sub, and Gmail Link) in one session.
 
-## Step 1: Setup Environment
+## Step 1: Initialize Environment
 
-Before we begin, you need to set up your environment variables. 
+1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into the terminal below.
+    *This sets your `$CHOSEN_REGION` and `$SETUP_TOKEN`.*
 
-1.  **Paste Command**: Paste the **Setup Command** you copied from the Gmail Sidebar into the terminal below and press **Enter**.
-
-    *This will set your `$CHOSEN_REGION` and `$SETUP_TOKEN` for the rest of the tutorial.*
-
-2.  **Verify**: You can verify the variables were set by running:
+2.  **Set Project**:
     ```bash
-    echo "Region: $CHOSEN_REGION"
-    echo "Token: $SETUP_TOKEN"
+    gcloud config set project $(gcloud config get-value project)
     ```
 
-3.  **Establish Project Context**: Ensure you are in the correct Google Cloud project.
-    <walkthrough-project-setup></walkthrough-project-setup>
-
-    Run the following command to set your project context (replace `<YOUR_PROJECT_ID>` with your actual Project ID):
-
+3.  **Enable Core APIs**:
     ```bash
-    gcloud config set project <YOUR_PROJECT_ID>
+    gcloud services enable run.googleapis.com \
+        cloudbuild.googleapis.com \
+        artifactregistry.googleapis.com \
+        discoveryengine.googleapis.com \
+        dialogflow.googleapis.com \
+        aiplatform.googleapis.com \
+        gmail.googleapis.com
     ```
 
-4.  **Enable APIs**: Run the following command to enable the necessary APIs.
+## Step 2: Provision Identity & Permissions
 
-```bash
-gcloud services enable run.googleapis.com \
-    cloudbuild.googleapis.com \
-    artifactregistry.googleapis.com \
-    cloudresourcemanager.googleapis.com \
-    discoveryengine.googleapis.com \
-    dialogflow.googleapis.com \
-    aiplatform.googleapis.com \
-    gmail.googleapis.com
-```
+1.  **Link Apps Script (Handshake)**:
+    *   **Get Project Number**: `gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"`
+    *   Open [Apps Script Editor](https://script.google.com/home).
+    *   **Settings (Gear)** > **Change Project** > Paste the Number.
 
-### 5. Link Apps Script to GCP Project (CRITICAL)
-For Gmail Push Notifications to work, your Apps Script project must be linked to your GCP Project:
-1.  **Get Project Number**: Run this command in the terminal below and **copy the resulting number**:
+2.  **Grant Deployment Roles**:
     ```bash
-    gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
-    ```
-2.  **Open Apps Script**: Open your project in the [Apps Script Editor](https://script.google.com/home) and click the **Settings** (gear icon) on the left.
-3.  **Change Project**: Scroll down to **Google Cloud Platform (GCP) Project** and click **Change project**.
-4.  **Paste & Set**: Paste your **Project Number** and click **Set project**.
-
-### 6. Grant Permissions
-Execute these blocks one by one to ensure your account has the necessary permissions.
-**1. Initialize Identity**
-Use the token directly as the email, with a fallback to the active gcloud account.
-```bash
-USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
-PROJECT_ID=$(gcloud config get-value project)
-echo "Setting permissions for: $USER_EMAIL"
-```
-
-**2. Grant Viewer Access** (Required for 'Verify Deployment' and 'Fetch Projects')
-```bash
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/run.viewer"
-```
-
-**3. Grant Admin/Editor Access** (Required for 'Update Backend' and Automated Agent Builder)
-```bash
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/cloudbuild.builds.editor"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/run.admin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/discoveryengine.admin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/serviceusage.serviceUsageAdmin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="user:$USER_EMAIL" \
-    --role="roles/pubsub.admin"
-```
-
-**4. Grant Agent Service Account Permissions** (Required for the Agent to self-provision)
-```bash
-PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
-SA_EMAIL="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
-
-echo "Granting permissions to Service Account: $SA_EMAIL"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:$SA_EMAIL" \
-    --role="roles/discoveryengine.admin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:$SA_EMAIL" \
-    --role="roles/dialogflow.admin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:$SA_EMAIL" \
-    --role="roles/serviceusage.serviceUsageAdmin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:$SA_EMAIL" \
-    --role="roles/pubsub.admin"
-```
-
-## Step 2: Initialize Submodules
-
-Ensure the agent code is correctly pulled from the submodule:
-
-```bash
-git submodule update --init --recursive
-```
-
-## Step 3: Build and Deploy
-
-1.  **Create Repository**: Create a Docker repository in Artifact Registry to host your agent image.
-
-```bash
-gcloud artifacts repositories create agent-repo \
-    --repository-format=docker \
-    --location=$CHOSEN_REGION \
-    --description="Docker repository for Rapid Agent Gmail Suite"
-```
-
-2.  **Navigate and Build**: Navigate to the agent directory and build the container image.
-
-```bash
-cd agents/smart-email-manager
-```
-
-Execute the build command:
-
-```bash
-gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$(gcloud config get-value project)/agent-repo/smart-email-manager-agent .
-```
-
-3.  **Deploy to Cloud Run**: After the build completes, deploy the container to Cloud Run.
-
-```bash
-gcloud run deploy smart-email-manager-agent \
-  --image $CHOSEN_REGION-docker.pkg.dev/$(gcloud config get-value project)/agent-repo/smart-email-manager-agent \
-  --platform managed \
-  --region $CHOSEN_REGION \
-  --allow-unauthenticated \
-  --port 8080
-```
-
-## Step 4: Verify Deployment
-
-Once the deployment is successful, gcloud will output your **Service URL** (e.g., `https://smart-email-manager-agent-xyz-uc.a.run.app`).
-
-1.  **Copy the Service URL** from the terminal.
-2.  Return to your **Gmail Sidebar**.
-3.  Paste the URL into the **"Cloud Run Service URL"** box.
-4.  Click the **"Verify Connection"** button.
-
-The add-on will automatically connect to your agent, retrieve your Project ID, and finalize the setup.
-
-### 4.5 Link Pub/Sub to Cloud Run (Manual Override)
-To ensure Gmail notifications reach your backend, verify the Pub/Sub push endpoint matches your Service URL:
-
-```bash
-# 1. Get your real URL
-SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
-
-# 2. Update the Pub/Sub subscription endpoint
-gcloud pubsub subscriptions update gmail-notifications-sub \
-    --push-endpoint="$SERVICE_URL/api/on-new-mail"
-```
-
-## Step 5: Activate Gmail Watcher (FINAL STEP)
-
-Even after deployment, Google requires a manual "Handshake" to allow notifications to flow from Gmail to your new Pub/Sub topic.
-
-1.  **Initialize Infra**: Ensure you have clicked **"Initialize Infrastructure"** in the Gmail Sidebar and it has finished.
-2.  **Run Handshake**: Click the link below to open the final activation step in Cloud Shell:
+    USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
+    PROJECT_ID=$(gcloud config get-value project)
     
-    [**🚀 Click to Activate Gmail Watcher**](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/RPG-coder/rapid-agent-gmail-suites.git&cloudshell_tutorial=final-handshake.md)
-
-    *Alternative: If the link above doesn't open the panel, just type this in your Cloud Shell terminal:*
-    ```bash
-    teachme final-handshake.md
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/run.admin"
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/discoveryengine.admin"
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/pubsub.admin"
     ```
 
-3.  **Check Connection**: Once done, return to Gmail and click **"Check Connection"**. It should now turn green!
+## Step 3: Deploy Backend (Cloud Run)
 
-Congratulations! Your Smart Email Manager Agent is now live and watching your inbox.
+1.  **Build Container**:
+    ```bash
+    cd agents/smart-email-manager
+    gcloud artifacts repositories create agent-repo --repository-format=docker --location=$CHOSEN_REGION || true
+    gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent .
+    ```
+
+2.  **Launch Service**:
+    ```bash
+    gcloud run deploy smart-email-manager-agent \
+      --image $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent \
+      --platform managed --region $CHOSEN_REGION --allow-unauthenticated --port 8080
+    
+    # Save URL for next steps
+    SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
+    gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
+    ```
+
+## Step 4: Provision Infra (Pub/Sub & Gmail Watch)
+
+1.  **Create Pub/Sub Bridge**:
+    ```bash
+    gcloud pubsub topics create gmail-notifications || true
+    gcloud pubsub topics add-iam-policy-binding gmail-notifications \
+        --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
+        --role="roles/pubsub.publisher"
+
+    gcloud pubsub subscriptions create gmail-notifications-sub --topic=gmail-notifications \
+        --push-endpoint="$SERVICE_URL/api/on-new-mail" || \
+    gcloud pubsub subscriptions update gmail-notifications-sub --push-endpoint="$SERVICE_URL/api/on-new-mail"
+    ```
+
+2.  **Activate Gmail Watch (The Handshake)**:
+    ```bash
+    # This requires you to have completed the Apps Script link in Step 2!
+    curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+      -H "Content-Type: application/json" \
+      -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" \
+      "https://gmail.googleapis.com/gmail/v1/users/me/watch"
+    ```
+
+## Step 5: Finalize in Gmail
+
+1.  Return to your **Gmail Sidebar**.
+2.  Paste your **Service URL** into the setup box.
+3.  Click **"Verify Installation"**.
+4.  **Success!** 🟢 Your agent is now watching your inbox and indexing to MongoDB.

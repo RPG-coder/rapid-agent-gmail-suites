@@ -3,95 +3,104 @@ import { createButtonGroupSection } from '../../atoms/buttonGroupSection';
 
 /**
  * Organism: Verify Deployment Page
- * Renders the verification steps for the Smart Email Manager.
+ * Refactored to be the "Master Installer Dashboard".
  */
 export function createVerifyDeploymentPage() {
   const props = PropertiesService.getScriptProperties();
   const projectId = props.getProperty("GCP_PROJECT_ID");
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
   const isFound = !!(projectId && cloudRunUrl);
+  const setupStatus = props.getProperty("SETUP_STATUS");
 
   const sections = [];
 
-  // --- Detection Section ---
-  const detectionSection = CardService.newCardSection()
-    .setHeader("Detect Project & Agent Container")
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        "Let Gmail know where your project and agent are located"
-      )
-    );
+  // --- 1. Step: Identify Backend ---
+  const identitySection = CardService.newCardSection()
+    .setHeader("Step 1: Identify Backend");
 
   if (isFound) {
-    detectionSection.addWidget(
+    identitySection.addWidget(
       CardService.newDecoratedText()
         .setTopLabel("Status")
-        .setText("✅ Backend Detected")
-        .setBottomLabel("Your agent is ready to be linked.")
+        .setText("✅ Backend Linked")
+        .setBottomLabel(`Project: ${projectId}`)
     );
-    
-    detectionSection.addWidget(
-      CardService.newDecoratedText()
-        .setTopLabel("Project ID")
-        .setText(`<b>${projectId}</b>`)
-        .setWrapText(true)
-    );
-
-    detectionSection.addWidget(
-      CardService.newDecoratedText()
-        .setTopLabel("Deployed Link")
-        .setText(`<a href="${cloudRunUrl}">${cloudRunUrl}</a>`)
-        .setWrapText(true)
-    );
-
-    // Add a way to re-detect if needed
-    detectionSection.addWidget(
+    identitySection.addWidget(
       CardService.newTextButton()
         .setText("Re-detect Backend")
         .setOnClickAction(CardService.newAction().setFunctionName("onGetAgentLink"))
     );
-    
-    sections.push(detectionSection);
-
-    // --- MongoDB Setup Section (Appears after backend discovery) ---
-    const mongoProjectId = props.getProperty("MONGODB_PROJECT_ID");
-    const isMongoConfigured = !!mongoProjectId;
-
-    sections.push(
-      createButtonGroupSection(
-        "Setup MongoDB",
-        isMongoConfigured 
-          ? "✅ MongoDB Cluster is being provisioned/ready." 
-          : "Connect your agent to a MongoDB instance to start managing email data.",
-        [
-          { 
-            text: "Configure MongoDB", 
-            functionName: "showMongoSetupWizard",
-            style: isMongoConfigured ? (CardService.TextButtonStyle as any).OUTLINED : CardService.TextButtonStyle.FILLED,
-            disabled: isMongoConfigured
-          },
-          { text: "Check Status", functionName: "onCheckStatus" }
-        ]
-      )
-    );
   } else {
-    detectionSection.addWidget(
-      CardService.newButtonSet().addButton(
-        CardService.newTextButton()
-          .setText("Get Agent Link")
-          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-          .setBackgroundColor("#4285F4")
-          .setOnClickAction(CardService.newAction().setFunctionName("onGetAgentLink"))
-      )
+    identitySection.addWidget(
+      CardService.newTextParagraph().setText("Link your Gmail to your deployed Cloud Run service.")
     );
-    sections.push(detectionSection);
+    identitySection.addWidget(
+      CardService.newTextButton()
+        .setText("Detect Agent Link")
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor("#4285F4")
+        .setOnClickAction(CardService.newAction().setFunctionName("onGetAgentLink"))
+    );
   }
+  sections.push(identitySection);
+
+  // --- 2. Step: Run Installer (Cloud Shell) ---
+  if (isFound) {
+    const installerSection = CardService.newCardSection()
+      .setHeader("Step 2: Run Installer")
+      .addWidget(
+        CardService.newTextParagraph().setText(
+          "Open Google Cloud Shell to provision Vertex AI, Pub/Sub, and Gmail Watch."
+        )
+      )
+      .addWidget(
+        CardService.newTextButton()
+          .setText("🚀 Launch Cloud Shell Setup")
+          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+          .setOnClickAction(CardService.newAction().setFunctionName("onOpenCloudShellSetup"))
+      );
+    sections.push(installerSection);
+
+    // --- 3. Step: Verify Installation ---
+    const verifySection = CardService.newCardSection()
+      .setHeader("Step 3: Verify & Finish");
+
+    if (setupStatus === "COMPLETED") {
+       verifySection.addWidget(
+         CardService.newDecoratedText()
+           .setText("🎉 SYSTEM ACTIVE")
+           .setBottomLabel("Your agent is watching your inbox.")
+       );
+    } else {
+       verifySection.addWidget(
+         CardService.newTextParagraph().setText("Once you finish the terminal steps, click verify below.")
+       );
+    }
+
+    verifySection.addWidget(
+      CardService.newTextButton()
+        .setText("Verify Installation")
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor("#34A853")
+        .setOnClickAction(CardService.newAction().setFunctionName("onVerifyInstallation"))
+    );
+    sections.push(verifySection);
+  }
+
+  // --- Reset Section ---
+  const resetSection = CardService.newCardSection()
+    .addWidget(
+      CardService.newTextButton()
+        .setText("Reset Setup State")
+        .setOnClickAction(CardService.newAction().setFunctionName("onResetSetupState"))
+    );
+  sections.push(resetSection);
 
   return createPage(
     "VERIFY_DEPLOYMENT_PAGE",
-    "Verify Deployment",
-    "Smart Email Manager / Verify Deployment",
-    "Follow below steps to verify",
+    "Setup Dashboard",
+    "Smart Email Manager / Setup",
+    "Follow the 3 steps below",
     sections
   );
 }

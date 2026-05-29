@@ -288,147 +288,38 @@ export function onBuildGCPInfrastructure(e: any) {
 }
 
 /**
- * Phase 3: Verification: Check if MongoDB cluster is ready
+ * Verification: Full system diagnostic
  */
-export function onVerifyDB(e: any) {
-  const props = PropertiesService.getScriptProperties();
-  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
-  
-  const mongoProjectId = props.getProperty("MONGODB_PROJECT_ID");
-  // These are stored in script properties during Step 1
-  const publicKey = props.getProperty("MONGO_PUBLIC_KEY");
-  const privateKey = props.getProperty("MONGO_PRIVATE_KEY");
-
-  try {
-    let url = `${cloudRunUrl}/api/verify-db`;
-    if (mongoProjectId && publicKey && privateKey) {
-      url += `?mongo_project_id=${encodeURIComponent(mongoProjectId)}&public_key=${encodeURIComponent(publicKey)}&private_key=${encodeURIComponent(privateKey)}`;
-    }
-
-    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    const result = JSON.parse(response.getContentText());
-
-    if (result.status === "ready") {
-      props.setProperty("SETUP_STATUS", "COMPLETED");
-      props.setProperty("MONGODB_STATUS", "READY");
-      setupGmailWatch();
-      return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Success: Database is now active!"))
-        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
-        .build();
-    } 
-    
-    else if (result.status === "ready_to_link") {
-      // The cluster is IDLE, we got the SRV. Now tell backend to use it.
-      const dbPass = props.getProperty("MONGODB_PASSWORD") || "password_missing";
-      const fullUri = result.srv_uri.replace("mongodb+srv://", `mongodb+srv://agent_user:${encodeURIComponent(dbPass)}@`);
-      
-      UrlFetchApp.fetch(`${cloudRunUrl}/api/update-env?mongo_uri=${encodeURIComponent(fullUri)}`, { method: "post" });
-      
-      props.setProperty("SETUP_STATUS", "COMPLETED");
-      props.setProperty("MONGODB_STATUS", "READY");
-      setupGmailWatch();
-      
-      return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("Success: Database linked and active!"))
-        .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
-        .build();
-    }
-    
-    else {
-      return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText(result.message || "Still provisioning..."))
-        .build();
-    }
-  } catch (error) {
-    return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText("Verification Error: " + error.toString()))
-      .build();
-  }
+export function onVerifyInstallation(e: any) {
+  const result = verifySystem();
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText(result))
+    .setNavigation(CardService.newNavigation().updateCard(createVerifyDeploymentPage()))
+    .build();
 }
 
 /**
- * Recovery: Reset the setup state machine
+ * Recovery: Reset the setup state
  */
 export function onResetSetupState(e: any) {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty("SETUP_STATUS");
-  props.deleteProperty("MONGODB_PROJECT_ID");
-  props.deleteProperty("MONGODB_STATUS");
+  props.deleteProperty("CLOUD_RUN_URL");
   
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Setup state reset. You can start over."))
-    .setNavigation(CardService.newNavigation().updateCard(createMongoSetupWizardPage()))
+    .setNotification(CardService.newNotification().setText("Setup state reset."))
+    .setNavigation(CardService.newNavigation().updateCard(createVerifyDeploymentPage()))
     .build();
 }
 
-/**
- * Override: Manually mark setup as complete
- */
-export function onForceCompleteSetup(e: any) {
-  const props = PropertiesService.getScriptProperties();
-  props.setProperty("SETUP_STATUS", "COMPLETED");
-  props.setProperty("MONGODB_STATUS", "READY");
-  
-  setupGmailWatch();
-  
-  return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Setup manually completed. Starting Gmail Watch..."))
-    .setNavigation(CardService.newNavigation().updateCard(createHomePage()))
-    .build();
-}
-
-/**
- * Refreshes the Gmail Watch and Agent status.
- */
-export function onCheckStatus(e: any) {
-  const result = setupGmailWatch();
-  return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText(result))
-    .build();
-}
-
-/**
- * Gmail: Setup Push Notifications via Backend Proxy
- */
-export function setupGmailWatch() {
-  const props = PropertiesService.getScriptProperties();
-  const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
-  const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
-
-  if (!cloudRunUrl) return "Error: Cloud Run URL missing.";
-
-  try {
-    const gmailToken = ScriptApp.getOAuthToken();
-    // Use the new check-connection endpoint which is safer and detects handshake issues
-    const url = `${cloudRunUrl}/api/check-connection?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
-
-    const response = UrlFetchApp.fetch(url, { method: "post", muteHttpExceptions: true });
-    const result = JSON.parse(response.getContentText());
-
-    if (response.getResponseCode() === 200) {
-      if (result.status === "connected") {
-        props.setProperty("GMAIL_WATCH_ACTIVE", "true");
-        return "✅ Success: Gmail Watch is active! Your inbox is connected.";
-      } else if (result.status === "handshake_required") {
-        return "⚠️ Handshake Required: Please run the activation command in Cloud Shell to link your project. (See Step 5 in tutorial.md)";
-      } else {
-        return "Backend Status: " + (result.message || "Unknown state");
-      }
-    } else {
-      return "Backend Error: " + (result.detail?.error?.message || result.detail || "Verification failed");
-    }
-  } catch (error) {
-    return "Network Error: " + error.toString();
-  }
-}
 // Assign global functions to the 'global' object for gas-webpack-plugin
 declare var global: any;
 var gasGlobal: any = typeof global !== 'undefined' ? global : this;
 gasGlobal.onHomepage = onHomepage;
 gasGlobal.onGmailMessage = onGmailMessage;
 gasGlobal.onViewSettings = onViewSettings;
-gasGlobal.onCheckConnections = onCheckConnections;
+gasGlobal.onCheckConnections = onVerifyInstallation;
+gasGlobal.onVerifyInstallation = onVerifyInstallation;
 gasGlobal.onAskQuestions = onAskQuestions;
 gasGlobal.showSEMDeployment = showSEMDeployment;
 gasGlobal.showVerifyDeployment = showVerifyDeployment;
@@ -437,10 +328,4 @@ gasGlobal.onOpenGCPRegistration = onOpenGCPRegistration;
 gasGlobal.onOpenMongoDBRegistration = onOpenMongoDBRegistration;
 gasGlobal.onOpenCloudShellSetup = onOpenCloudShellSetup;
 gasGlobal.onGetAgentLink = onGetAgentLink;
-gasGlobal.showMongoSetupWizard = showMongoSetupWizard;
-gasGlobal.onInitDBDeployment = onInitDBDeployment;
-gasGlobal.onBuildGCPInfrastructure = onBuildGCPInfrastructure;
-gasGlobal.onVerifyDB = onVerifyDB;
 gasGlobal.onResetSetupState = onResetSetupState;
-gasGlobal.onForceCompleteSetup = onForceCompleteSetup;
-gasGlobal.onCheckStatus = onCheckStatus;
