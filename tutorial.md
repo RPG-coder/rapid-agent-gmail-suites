@@ -12,12 +12,17 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     git submodule update --init --recursive
     ```
 
-3.  **Set Project**:
+3.  **Authenticate Gmail Scopes**:
+    ```bash
+    gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.modify"
+    ```
+
+4.  **Set Project**:
     ```bash
     gcloud config set project YOUR_PROJECT_ID
     ```
 
-4.  **Enable Core APIs**:
+5.  **Enable Core APIs**:
     ```bash
     gcloud services enable run.googleapis.com \
         cloudbuild.googleapis.com \
