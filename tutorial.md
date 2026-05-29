@@ -12,22 +12,10 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     git submodule update --init --recursive
     ```
 
-3.  **Authenticate Gmail Scopes**:
-    *   **Unblock App (Critical)**: Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) in GCP Console.
-    *   **User Type**: Select **External**.
-    *   **App Status**: Keep it in **Testing**.
-    *   **Test Users**: Click **ADD USERS** and enter your email. **You must click SAVE.**
-    *   **Login**: Run the command below. We use `readonly` scopes to avoid the "Restricted" block.
-        ```bash
-        gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.labels"
-        ```
-    *   **Bypass Warning**: When the "Google hasn't verified this app" screen appears, click **Advanced** > **Go to [Project Name] (unsafe)**.
-
-    **Still Blocked?**
-    *   Ensure you are logged into the **same Google account** in your browser that you added as a Test User.
-    *   Try an **Incognito/Private** window for the login link.
-    *   Run `gcloud auth application-default revoke` then try again.
-    *   Verify your Project ID matches: `gcloud config get-value project` should match the one in the Consent Screen.
+3.  **Authenticate**:
+    ```bash
+    gcloud auth application-default login
+    ```
 
 4.  **Set Project**:
     ```bash
