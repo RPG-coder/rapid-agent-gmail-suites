@@ -8,6 +8,7 @@ Before you begin, ensure you have the following accounts and keys:
 
 1.  **MongoDB Atlas**:
     *   Create a free account at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register).
+    *   **Create a Project**: If not automatically prompted, click "New Project" in the Atlas dashboard and give it a name.
     *   Create a **New Cluster** (Shared/Free Tier).
     *   Go to **Database Access** and create a user with "Read and write to any database" permissions.
     *   Go to **Network Access** and click **"Add IP Address"** -> **"Allow Access from Anywhere"** (0.0.0.0/0) for development.
