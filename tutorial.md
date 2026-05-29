@@ -129,10 +129,37 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
 2.  **Activate Gmail Watch (The Handshake)**:
 
+    **Option A: Terminal (May be blocked by Google Security)**
     This requires you to have completed the Apps Script link in Step 2!
     ```bash
     curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" -H "Content-Type: application/json" -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" "https://gmail.googleapis.com/gmail/v1/users/me/watch"
     ```
+
+    **Option B: Apps Script (Recommended - Bypasses Security Block)**
+    If Option A fails with "App Blocked", use this:
+    1. Open your **Apps Script Editor** (the one from Step 2).
+    2. Paste this code into a new script file:
+       ```javascript
+       function activateGmailWatch() {
+         GmailApp.getInboxUnreadCount(); // Triggers scope request
+         const projectId = 'YOUR_PROJECT_ID'; 
+         const options = {
+           method: "post",
+           contentType: "application/json",
+           payload: JSON.stringify({
+             topicName: `projects/${projectId}/topics/gmail-notifications`,
+             labelIds: ["INBOX"]
+           }),
+           headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+           muteHttpExceptions: true
+         };
+         const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", options);
+         Logger.log(response.getContentText());
+       }
+       ```
+    3. Replace `YOUR_PROJECT_ID` with your actual Project ID.
+    4. Click **Run**. Click **Advanced** > **Go to [Project] (unsafe)** when prompted.
+
 
 ## Step 5: Finalize in Gmail
 
