@@ -131,6 +131,7 @@ Before you begin, ensure you have the following accounts and keys:
     # 2. Create Placeholder Data Store
     curl -X POST \
       -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "X-Goog-User-Project: $(gcloud config get-value project)" \
       -H "Content-Type: application/json" \
       -d '{"displayName": "Smart Email Manager Data Store", "industryVertical": "GENERIC", "contentConfig": "NO_CONTENT"}' \
       "https://discoveryengine.googleapis.com/v1beta/projects/$(gcloud config get-value project)/locations/global/collections/default_collection/dataStores?dataStoreId=smart-email-manager-ds"
@@ -138,6 +139,7 @@ Before you begin, ensure you have the following accounts and keys:
     # 3. Create Search Engine
     curl -X POST \
       -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "X-Goog-User-Project: $(gcloud config get-value project)" \
       -H "Content-Type: application/json" \
       -d '{"displayName": "Smart Email Manager", "solutionType": "SOLUTION_TYPE_SEARCH", "industryVertical": "GENERIC", "dataStoreIds": ["smart-email-manager-ds"]}' \
       "https://discoveryengine.googleapis.com/v1beta/projects/$(gcloud config get-value project)/locations/global/collections/default_collection/engines?engineId=smart-email-manager"
