@@ -16,7 +16,8 @@ Before you begin, ensure you have the following accounts and keys:
 
 2.  **Voyage AI**:
     *   Sign up at [voyageai.com](https://www.voyageai.com/).
-    *   Go to your dashboard and copy your **API Key**.
+    *   Go to **API Keys** and click **"Create new secret key"**.
+    *   Copy your **API Key**.
 
 ## Step 1: Initialize Environment
 
