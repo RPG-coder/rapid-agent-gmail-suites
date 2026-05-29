@@ -9,7 +9,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
 2.  **Set Project**:
     ```bash
-    gcloud config set project $(gcloud config get-value project)
+    gcloud config set project YOUR_PROJECT_ID
     ```
 
 3.  **Enable Core APIs**:
@@ -20,15 +20,18 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
         discoveryengine.googleapis.com \
         dialogflow.googleapis.com \
         aiplatform.googleapis.com \
-        gmail.googleapis.com
+        gmail.googleapis.com \
+        cloudresourcemanager.googleapis.com
     ```
 
 ## Step 2: Provision Identity & Permissions
 
 1.  **Link Apps Script (Handshake)**:
-    *   **Get Project Number**: `gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"`
-    *   Open [Apps Script Editor](https://script.google.com/home).
-    *   **Settings (Gear)** > **Change Project** > Paste the Number.
+    *   **Get Project Number**:
+        ```bash
+        gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
+        ```
+    *   Open Apps Script Editor. Go to "Rapid Agent Suite" Project Settings (Gear) > Change Project > Paste the Number.
 
 2.  **Grant Deployment Roles**:
     ```bash
@@ -43,10 +46,26 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 ## Step 3: Deploy Backend (Cloud Run)
 
 1.  **Build Container**:
+
+    Goto Agent folder
     ```bash
     cd agents/smart-email-manager
-    gcloud artifacts repositories create agent-repo --repository-format=docker --location=$CHOSEN_REGION || true
-    gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent .
+    ```
+
+    If not created before, create artifacts repository
+    ```bash
+    gcloud artifacts repositories \
+        create agent-repo \
+        --repository-format=docker \
+        --location=$CHOSEN_REGION || \
+        true
+    ```
+
+    Build Container:
+    ```bash
+    gcloud builds submit --tag \
+        $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent \
+        .
     ```
 
 2.  **Launch Service**:
