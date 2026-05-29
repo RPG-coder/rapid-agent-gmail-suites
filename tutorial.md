@@ -165,6 +165,18 @@ Once the deployment is successful, gcloud will output your **Service URL** (e.g.
 
 The add-on will automatically connect to your agent, retrieve your Project ID, and finalize the setup.
 
+### 4.5 Link Pub/Sub to Cloud Run (Manual Override)
+To ensure Gmail notifications reach your backend, verify the Pub/Sub push endpoint matches your Service URL:
+
+```bash
+# 1. Get your real URL
+SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
+
+# 2. Update the Pub/Sub subscription endpoint
+gcloud pubsub subscriptions update gmail-notifications-sub \
+    --push-endpoint="$SERVICE_URL/api/on-new-mail"
+```
+
 ## Step 5: Activate Gmail Watcher (FINAL STEP)
 
 Even after deployment, Google requires a manual "Handshake" to allow notifications to flow from Gmail to your new Pub/Sub topic.
