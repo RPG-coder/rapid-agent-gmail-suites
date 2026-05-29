@@ -44,26 +44,10 @@ export function createVerifyDeploymentPage() {
   }
   sections.push(identitySection);
 
-  // --- 2. Step: Run Installer (Cloud Shell) ---
+  // --- 2. Step: Verify Installation ---
   if (isFound) {
-    const installerSection = CardService.newCardSection()
-      .setHeader("Step 2: Run Installer")
-      .addWidget(
-        CardService.newTextParagraph().setText(
-          "Open Google Cloud Shell to provision Vertex AI, Pub/Sub, and Gmail Watch."
-        )
-      )
-      .addWidget(
-        CardService.newTextButton()
-          .setText("🚀 Launch Cloud Shell Setup")
-          .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-          .setOnClickAction(CardService.newAction().setFunctionName("onOpenCloudShellSetup"))
-      );
-    sections.push(installerSection);
-
-    // --- 3. Step: Verify Installation ---
     const verifySection = CardService.newCardSection()
-      .setHeader("Step 3: Verify & Finish");
+      .setHeader("Step 2: Verify & Finish");
 
     if (setupStatus === "COMPLETED") {
        verifySection.addWidget(
@@ -73,7 +57,7 @@ export function createVerifyDeploymentPage() {
        );
     } else {
        verifySection.addWidget(
-         CardService.newTextParagraph().setText("Once you finish the terminal steps, click verify below.")
+         CardService.newTextParagraph().setText("Once you finish the tutorial steps, click verify below.")
        );
     }
 
