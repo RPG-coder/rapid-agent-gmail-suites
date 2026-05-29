@@ -111,8 +111,9 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     ```
 
 2.  **Activate Gmail Watch (The Handshake)**:
+
+    This requires you to have completed the Apps Script link in Step 2!
     ```bash
-    # This requires you to have completed the Apps Script link in Step 2!
     curl -X POST -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
       -H "Content-Type: application/json" \
       -d "{\"topicName\": \"projects/$PROJECT_ID/topics/gmail-notifications\", \"labelIds\": [\"INBOX\"]}" \
