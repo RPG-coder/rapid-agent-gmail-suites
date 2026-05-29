@@ -12,7 +12,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
     git submodule update --init --recursive
     ```
 
-3.  **Authenticate**:
+3.  **Authenticate** (Skip if using Cloud Shell):
     ```bash
     gcloud auth application-default login
     ```
