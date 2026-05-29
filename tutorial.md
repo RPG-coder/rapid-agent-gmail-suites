@@ -122,16 +122,25 @@ Before you begin, ensure you have the following accounts and keys:
 ## Step 4: Provision Infra (Pub/Sub & Vertex AI)
 
 1.  **Provision Vertex AI Search**:
+    The `gcloud` CLI support for Discovery Engine can vary by version. Use this `curl` command to reliably provision your engine:
+
     ```bash
+    # 1. Enable API
     gcloud services enable discoveryengine.googleapis.com
-    
-    # This creates the required search engine
-    gcloud alpha discoveryengine engines create \
-        --display-name="Smart Email Manager" \
-        --engine-id="smart-email-manager" \
-        --collection-id="default_collection" \
-        --location="global" \
-        --type="SEARCH"
+
+    # 2. Create Placeholder Data Store
+    curl -X POST \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "Content-Type: application/json" \
+      -d '{"displayName": "Smart Email Manager Data Store", "industryVertical": "GENERIC", "contentConfig": "NO_CONTENT"}' \
+      "https://discoveryengine.googleapis.com/v1beta/projects/$(gcloud config get-value project)/locations/global/collections/default_collection/dataStores?dataStoreId=smart-email-manager-ds"
+
+    # 3. Create Search Engine
+    curl -X POST \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "Content-Type: application/json" \
+      -d '{"displayName": "Smart Email Manager", "solutionType": "SOLUTION_TYPE_SEARCH", "industryVertical": "GENERIC", "dataStoreIds": ["smart-email-manager-ds"]}' \
+      "https://discoveryengine.googleapis.com/v1beta/projects/$(gcloud config get-value project)/locations/global/collections/default_collection/engines?engineId=smart-email-manager"
     ```
 
 2.  **Create Pub/Sub Bridge**:
