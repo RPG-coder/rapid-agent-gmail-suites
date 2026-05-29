@@ -2,6 +2,21 @@
 
 This guide provides the "Golden Path" to deploy the Smart Email Manager stack (Cloud Run, Vertex AI, Pub/Sub, and Gmail Link).
 
+## Step 0: Prerequisites
+
+Before you begin, ensure you have the following accounts and keys:
+
+1.  **MongoDB Atlas**:
+    *   Create a free account at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register).
+    *   Create a **New Cluster** (Shared/Free Tier).
+    *   Go to **Database Access** and create a user with "Read and write to any database" permissions.
+    *   Go to **Network Access** and click **"Add IP Address"** -> **"Allow Access from Anywhere"** (0.0.0.0/0) for development.
+    *   Click **Connect** -> **Drivers** -> **Python** and copy your **Connection String (MONGO_URI)**.
+
+2.  **Voyage AI**:
+    *   Sign up at [voyageai.com](https://www.voyageai.com/).
+    *   Go to your dashboard and copy your **API Key**.
+
 ## Step 1: Initialize Environment
 
 1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into your terminal.
