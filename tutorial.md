@@ -83,9 +83,31 @@ This guide provides the "Golden Path" to deploy the Smart Email Manager stack (C
     gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
     ```
 
-## Step 4: Provision Infra (Pub/Sub & Gmail Watch)
+3.  **Configure Secrets**:
+    Replace the placeholders below with your actual keys.
+    ```bash
+    gcloud run services update smart-email-manager-agent \
+      --set-env-vars="MONGO_URI=your_mongodb_atlas_uri" \
+      --set-env-vars="VOYAGE_API_KEY=your_voyage_api_key" \
+      --region $CHOSEN_REGION
+    ```
 
-1.  **Create Pub/Sub Bridge**:
+## Step 4: Provision Infra (Pub/Sub & Vertex AI)
+
+1.  **Provision Vertex AI Search**:
+    ```bash
+    gcloud services enable discoveryengine.googleapis.com
+    
+    # This creates the required search engine
+    gcloud alpha discoveryengine engines create \
+        --display-name="Smart Email Manager" \
+        --engine-id="smart-email-manager" \
+        --collection-id="default_collection" \
+        --location="global" \
+        --type="SEARCH"
+    ```
+
+2.  **Create Pub/Sub Bridge**:
     ```bash
     gcloud pubsub topics create gmail-notifications || true
     gcloud pubsub topics add-iam-policy-binding gmail-notifications \
