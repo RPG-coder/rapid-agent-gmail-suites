@@ -11,7 +11,7 @@ Before you begin, ensure you have the following accounts and keys:
     *   **Create a Project**: If not automatically prompted, click **"New Project"** (ex: `Rapid-Agent`).
     *   **Create a Cluster**: Create a **"New Cluster"** (Shared/Free Tier, ex: `email-cluster`).
     *   **Database Access**: On the left sidebar, go to **"Security"** > **"Database Access"**. Select your user (**Edit**) > In the **Built-in Roles** dropdown, select **"Read and write to any database"** and click **"Update User"**.
-    *   **Network Access**: On the left sidebar, go to **"Security"** > **"Network Access"**. Add **`0.0.0.0/0`** (Allow Access from Anywhere) for development.
+    *   **Network Access**: On the left sidebar, go to **"Security"** > **"Network Access"** > **"IP Access List"**. Add **`0.0.0.0/0`** (Allow Access from Anywhere) for development.
     *   **Connect**: Go to **"Database"** > **"Clusters"**. Click **"Connect"** on your cluster (ex: `email-cluster`) -> **Drivers** -> **Python**. Copy your **Connection String (MONGO_URI)**.
 
 2.  **Voyage AI**:
