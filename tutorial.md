@@ -7,12 +7,17 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into the terminal below.
     *This sets your `$CHOSEN_REGION` and `$SETUP_TOKEN`.*
 
-2.  **Set Project**:
+2.  **Pull Submodules**:
+    ```bash
+    git submodule update --init --recursive
+    ```
+
+3.  **Set Project**:
     ```bash
     gcloud config set project YOUR_PROJECT_ID
     ```
 
-3.  **Enable Core APIs**:
+4.  **Enable Core APIs**:
     ```bash
     gcloud services enable run.googleapis.com \
         cloudbuild.googleapis.com \
@@ -69,10 +74,7 @@ This tutorial will help you deploy the entire Smart Email Manager stack (Cloud R
 
     Build Container:
     ```bash
-    # Verify Dockerfile exists
-    ls Dockerfile
-    
-    gcloud builds submit . --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent
+    gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent .
     ```
 
 2.  **Launch Service**:
