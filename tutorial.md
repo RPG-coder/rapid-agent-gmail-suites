@@ -78,35 +78,68 @@ Before you begin, ensure you have the following accounts and keys:
     ```
 
 3.  **Permanent Autonomy (Optional but Recommended)**:
-    Google blocks the standard `gcloud` tool from sensitive Gmail scopes on personal accounts. To get a permanent **Refresh Token**, you must use your own Client ID.
+    This grants your agent a persistent **Refresh Token** so it never expires.
     
     1. **Create Desktop Client**: 
        * Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
        * Click **CREATE CREDENTIALS** > **OAuth client ID**.
        * **Application type**: Desktop app. **Name**: "Agent Permanent Auth".
        * Click **CREATE**, then click the **Download JSON** icon for the new client.
-    2. **Upload to Cloud Shell**: 
-       * In the Cloud Shell Editor, right-click any folder and select **Upload**.
-       * Upload the `.json` file you just downloaded (rename it to `client_secret.json`).
-    3. **Login with Custom Client**:
-        ```bash
-        gcloud auth application-default login \
-          --client-id-file=client_secret.json \
-          --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.modify"
-        ```
-        *Now, when you authenticate, you will see the **Advanced** link. Click it and select **Go to [Project Name] (unsafe)**.*
-    4. **Sync to Agent**: (Run this after Step 3.2 "Launch Service" is complete)
-        ```bash
-        USER_EMAIL=$(gcloud config get-value account)
-        SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
-        
-        curl -X POST "$SERVICE_URL/api/sync-credentials" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"user_email\": \"$USER_EMAIL\",
-            \"credentials\": $(cat ~/.config/gcloud/application_default_credentials.json)
-          }"
-        ```
+    2. **Upload & Sync**: 
+       * Upload the `.json` file to Cloud Shell (rename to `client_secret.json`).
+       * Run this "All-in-One" sync script:
+       ```bash
+       # 1. Install missing helper dependencies
+       pip install google-auth-oauthlib requests --quiet
+
+       # 2. Generate the sync script
+       cat << 'EOF' > permanent_auth.py
+import json, os, requests
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+# 1. Setup
+SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/gmail.modify']
+SERVICE_URL = os.popen("gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)'").read().strip()
+USER_EMAIL = os.popen("gcloud config get-value account").read().strip()
+
+# 2. Run Flow
+flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+flow.redirect_uri = 'http://localhost' 
+
+auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
+print(f"\n---> Visit this URL:\n{auth_url}\n")
+print("---> After authorizing, your browser will fail to load 'localhost'.")
+print("---> Copy that BROKEN URL from your address bar and paste it below.\n")
+
+res_url = input("Paste FULL localhost URL: ").strip()
+
+if not res_url.startswith("http"):
+    print("Error: You must paste the full URL starting with http://localhost...")
+    exit(1)
+
+flow.fetch_token(authorization_response=res_url)
+creds = flow.credentials
+
+# 3. Sync
+payload = {
+    "user_email": USER_EMAIL,
+    "credentials": {
+        "access_token": creds.token,
+        "refresh_token": creds.refresh_token,
+        "client_id": creds.client_id,
+        "client_secret": creds.client_secret
+    }
+}
+resp = requests.post(f"{SERVICE_URL}/api/sync-credentials", json=payload)
+print(f"\nStatus: {resp.status_code}")
+print(f"Result: {resp.json()}")
+EOF
+
+       # 3. Run it
+       python3 permanent_auth.py
+       ```
+    3. **Authorize**: 
+       * Follow the terminal prompts. Copy the auth URL, authorize in browser, and paste the resulting localhost URL back into terminal.
 
 ## Step 3: Deploy Backend (Cloud Run)
 
