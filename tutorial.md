@@ -7,42 +7,41 @@ This guide provides the "Golden Path" to deploy the Smart Email Manager stack (C
 Before you begin, ensure you have the following accounts and keys:
 
 1.  **MongoDB Atlas**:
-    *   Create a free account at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register).
-    *   **Create a Project**: If not automatically prompted, click **"New Project"** (ex: `Rapid-Agent`).
-    *   **Create a Cluster**: Create a **"New Cluster"** (Shared/Free Tier, ex: `email-cluster`).
-    *   **Database Access**: On the left sidebar, go to **"Security"** > **"Database Access"**. Select your user (**Edit**) > In the **Built-in Roles** dropdown, select **"Read and write to any database"** and click **"Update User"**.
-    *   **Network Access**: On the left sidebar, go to **"Security"** > **"Network Access"** > **"IP Access List"**. Add **`0.0.0.0/0`** (Allow Access from Anywhere) for development.
-    *   **Connect**: Go to **"Database"** > **"Clusters"**. Click **"Connect"** on your cluster (ex: `email-cluster`) -> **Drivers** -> **Python**. Copy your **Connection String (MONGO_URI)**.
+    - Create a free account at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register).
+    - **Create a Project**: If not automatically prompted, click **"New Project"** (ex: `Rapid-Agent`).
+    - **Create a Cluster**: Create a **"New Cluster"** (Shared/Free Tier, ex: `email-cluster`).
+    - **Database Access**: On the left sidebar, go to **"Security"** > **"Database Access"**. Select your user (**Edit**) > In the **Built-in Roles** dropdown, select **"Read and write to any database"** and click **"Update User"**.
+    - **Network Access**: On the left sidebar, go to **"Security"** > **"Network Access"** > **"IP Access List"**. Add **`0.0.0.0/0`** (Allow Access from Anywhere) for development.
+    - **Connect**: Go to **"Database"** > **"Clusters"**. Click **"Connect"** on your cluster (ex: `email-cluster`) -> **Drivers** -> **Python**. Copy your **Connection String (MONGO_URI)**.
 
 2.  **Voyage AI**:
-    *   Sign up at [voyageai.com](https://www.voyageai.com/).
-    *   Go to **API Keys** and click **"Create new secret key"**.
-    *   Copy your **API Key**.
+    - Sign up at [voyageai.com](https://www.voyageai.com/).
+    - Go to **API Keys** and click **"Create new secret key"**.
+    - Copy your **API Key**.
 
 ## Step 1: Initialize Environment
 
 1.  **Paste Command**: Paste the **Setup Command** from the Gmail Sidebar into your terminal.
-    *This sets your `$CHOSEN_REGION` and `$SETUP_TOKEN`.*
+    _This sets your `$CHOSEN_REGION` and `$SETUP_TOKEN`._
 
 2.  **Pull Submodules**: Ensure you have the latest agent code.
+
     ```bash
     git submodule update --init --recursive
     ```
 
 3.  **Create or Select Project**:
     It is highly recommended to use a **fresh GCP Project** for this setup.
-    
-    *   **Create New**:
-        ```bash
-        gcloud projects create YOUR_PROJECT_ID --name="Smart Email Manager"
-        gcloud config set project YOUR_PROJECT_ID
-        ```
-        *(Optional) Enable billing in the [GCP Console](https://console.cloud.google.com/billing) if prompted.*
-    
-    *   **Select Existing**:
-        ```bash
-        gcloud config set project YOUR_PROJECT_ID
-        ```
+    - **Create New**:
+      ```bash
+      gcloud projects create YOUR_PROJECT_ID --name="Smart Email Manager"
+      gcloud config set project YOUR_PROJECT_ID
+      ```
+      _(Optional) Enable billing in the [GCP Console](https://console.cloud.google.com/billing) if prompted._
+    - **Select Existing**:
+      ```bash
+      gcloud config set project YOUR_PROJECT_ID
+      ```
 
 4.  **Enable Core APIs**:
     ```bash
@@ -60,18 +59,19 @@ Before you begin, ensure you have the following accounts and keys:
 ## Step 2: Provision Identity & Permissions
 
 1.  **Link Apps Script (Handshake)**:
-    *   **Get Project Number**:
-        ```bash
-        gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
-        ```
-    *   Open [Apps Script Editor](https://script.google.com/home).
-    *   Go to **Project Settings (Gear icon)** > **Change Project** > Paste the Project Number.
+    - **Get Project Number**:
+      ```bash
+      gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)"
+      ```
+    - Open [Apps Script Editor](https://script.google.com/home).
+    - Go to **Project Settings (Gear icon)** > **Change Project** > Paste the Project Number.
 
 2.  **Grant Deployment Roles**:
+
     ```bash
     USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
     PROJECT_ID=$(gcloud config get-value project)
-    
+
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/run.admin"
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/discoveryengine.admin"
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/pubsub.admin"
@@ -79,74 +79,91 @@ Before you begin, ensure you have the following accounts and keys:
 
 3.  **Permanent Autonomy (Optional but Recommended)**:
     This grants your agent a persistent **Refresh Token** so it never expires.
-    
-    1. **Create Desktop Client**: 
-       * Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
-       * Click **CREATE CREDENTIALS** > **OAuth client ID**.
-       * **Application type**: Desktop app. **Name**: "Agent Permanent Auth".
-       * Click **CREATE**, then click the **Download JSON** icon for the new client.
-    2. **Upload & Sync**: 
-       * Upload the `.json` file to Cloud Shell (rename to `client_secret.json`).
-       * Run this "All-in-One" sync script:
+    1. **Create Desktop Client**:
+       - Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
+       - Click **CREATE CREDENTIALS** > **OAuth client ID**.
+       - **Application type**: Desktop app. **Name**: "Agent Permanent Auth".
+       - Click **CREATE**, then click the **Download JSON** icon for the new client.
+    2. **Upload & Sync**:
+       - Upload the `.json` file to Cloud Shell (rename to `client_secret.json`).
+       - Run this "All-in-One" sync script:
+
        ```bash
-       # 1. Install missing helper dependencies
-       pip install google-auth-oauthlib requests --quiet
+        # 1. Install missing helper dependencies silently
+        pip install google-auth-oauthlib requests --quiet
+       ```
 
-       # 2. Generate the sync script
+       ```bash
+       # 2. Generate the dynamic OAuth loopback synchronization script
        cat << 'EOF' > permanent_auth.py
-import json, os, requests
-from google_auth_oauthlib.flow import InstalledAppFlow
+       import json, os, requests
+       from google_auth_oauthlib.flow import InstalledAppFlow
 
-# 1. Setup
-SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/gmail.modify']
-SERVICE_URL = os.popen("gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)'").read().strip()
-USER_EMAIL = os.popen("gcloud config get-value account").read().strip()
+       # 1. Setup Environment Targets
+       SCOPES = [
+           'https://www.googleapis.com/auth/cloud-platform',
+           'https://www.googleapis.com/auth/gmail.modify'
+       ]
+       SERVICE_URL = os.popen("gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)'").read().strip()
+       USER_EMAIL = os.popen("gcloud config get-value account").read().strip()
 
-# 2. Run Flow
-flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
-flow.redirect_uri = 'http://localhost' 
+       # 2. Run Headless Oauth Loopback Flow
+       flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+       flow.redirect_uri = 'http://localhost'
 
-auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
-print(f"\n---> Visit this URL:\n{auth_url}\n")
-print("---> After authorizing, your browser will fail to load 'localhost'.")
-print("---> Copy that BROKEN URL from your address bar and paste it below.\n")
+       auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
+       print(f"\n---> Visit this URL to authorize your session:\n{auth_url}\n")
+       print("---> After authorizing, your browser will fail to load a 'localhost' web page.")
+       print("---> Copy that entire BROKEN URL string out of your address bar and paste it below.\n")
 
-res_url = input("Paste FULL localhost URL: ").strip()
+       res_url = input("Paste FULL localhost URL: ").strip()
 
-if not res_url.startswith("http"):
-    print("Error: You must paste the full URL starting with http://localhost...")
-    exit(1)
+       if not res_url.startswith("http"):
+           print("\n[!] Error: You must paste the complete fallback URL starting with http://localhost...")
+           exit(1)
 
-flow.fetch_token(authorization_response=res_url)
-creds = flow.credentials
+       # Exchange verification callback parameters for tokens
+       flow.fetch_token(authorization_response=res_url)
+       creds = flow.credentials
 
-# 3. Sync
-payload = {
-    "user_email": USER_EMAIL,
-    "credentials": {
-        "access_token": creds.token,
-        "refresh_token": creds.refresh_token,
-        "client_id": creds.client_id,
-        "client_secret": creds.client_secret
-    }
-}
-resp = requests.post(f"{SERVICE_URL}/api/sync-credentials", json=payload)
-print(f"\nStatus: {resp.status_code}")
-print(f"Result: {resp.json()}")
-EOF
+       # 3. Formulate Refreshable Payload & Synchronize with Cloud Run Agent
+       payload = {
+           "user_email": USER_EMAIL,
+           "credentials": {
+               "access_token": creds.token,
+               "refresh_token": creds.refresh_token,
+               "client_id": creds.client_id,
+               "client_secret": creds.client_secret
+           }
+       }
 
-       # 3. Run it
+       print(f"\nPushing credentials to: {SERVICE_URL}/api/sync-credentials")
+       resp = requests.post(f"{SERVICE_URL}/api/sync-credentials", json=payload)
+
+       print(f"\nStatus Code: {resp.status_code}")
+       try:
+           print(f"Result Body: {json.dumps(resp.json(), indent=2)}")
+       except Exception:
+           print(f"Raw Output: {resp.text}")
+       EOF
+
+       # 3. Execute the script immediately
        python3 permanent_auth.py
        ```
-    3. **Authorize**: 
-       * Follow the terminal prompts. Copy the auth URL, authorize in browser, and paste the resulting localhost URL back into terminal.
+
+    3. **Authorize**:
+       - When the script runs, it will say "Please visit this URL". **Ignore that URL.**
+       - Instead, click **Web Preview** (top right of Cloud Shell) > **Change port** > Type **8081** > **Change and Preview**.
+       - Complete the login in the new window (Click **Advanced** > **Go to [Project] (unsafe)**).
+       - Once you see "The authentication flow has completed", return to terminal to see the "Success" message.
 
 ## Step 3: Deploy Backend (Cloud Run)
 
 1.  **Build Container**:
+
     ```bash
     cd agents/smart-email-manager
-    
+
     # Initialize variables if not set
     PROJECT_ID=$(gcloud config get-value project)
     CHOSEN_REGION=${CHOSEN_REGION:-us-central1}
@@ -162,6 +179,7 @@ EOF
 
 2.  **Launch Service**:
     Deploy the agent:
+
     ```bash
     gcloud run deploy smart-email-manager-agent \
       --image $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent \
@@ -169,6 +187,7 @@ EOF
     ```
 
     Update service with its own URL:
+
     ```bash
     SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
     gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
@@ -212,6 +231,7 @@ EOF
 2.  **Create Pub/Sub Bridges**:
 
     **Bridge A: Gmail Notifications** (Incoming Mail)
+
     ```bash
     gcloud pubsub topics create gmail-notifications || true
     gcloud pubsub topics add-iam-policy-binding gmail-notifications \
@@ -224,6 +244,7 @@ EOF
     ```
 
     **Bridge B: Auto-Reorganization** (Self-Healing)
+
     ```bash
     gcloud pubsub topics create reorganize-inbox || true
 
@@ -235,28 +256,30 @@ EOF
 3.  **Activate Gmail Watch (The Handshake)**:
 
     To bypass security blocks on personal accounts, we use Apps Script to perform the handshake.
-
     1. **Pre-flight Check (Unblock App)**:
-       * Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) in GCP Console.
-       * Set User Type to **External**.
-       * Click **ADD USERS** under "Test users", enter your email, and click **SAVE**.
+       - Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) in GCP Console.
+       - Set User Type to **External**.
+       - Click **ADD USERS** under "Test users", enter your email, and click **SAVE**.
     2. Open your **Apps Script Editor**.
     3. Paste this function into a script file:
        ```javascript
        function activateGmailWatch() {
          GmailApp.getInboxUnreadCount(); // Triggers permission prompt
-         const projectId = 'YOUR_PROJECT_ID'; 
+         const projectId = "YOUR_PROJECT_ID";
          const options = {
            method: "post",
            contentType: "application/json",
            payload: JSON.stringify({
              topicName: `projects/${projectId}/topics/gmail-notifications`,
-             labelIds: ["INBOX"]
+             labelIds: ["INBOX"],
            }),
            headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
-           muteHttpExceptions: true
+           muteHttpExceptions: true,
          };
-         const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", options);
+         const response = UrlFetchApp.fetch(
+           "https://gmail.googleapis.com/gmail/v1/users/me/watch",
+           options,
+         );
          Logger.log(response.getContentText());
        }
        ```
