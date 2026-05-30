@@ -77,6 +77,37 @@ Before you begin, ensure you have the following accounts and keys:
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/pubsub.admin"
     ```
 
+3.  **Permanent Autonomy (Optional but Recommended)**:
+    Google blocks the standard `gcloud` tool from sensitive Gmail scopes on personal accounts. To get a permanent **Refresh Token**, you must use your own Client ID.
+    
+    1. **Create Desktop Client**: 
+       * Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
+       * Click **CREATE CREDENTIALS** > **OAuth client ID**.
+       * **Application type**: Desktop app. **Name**: "Agent Permanent Auth".
+       * Click **CREATE**, then click the **Download JSON** icon for the new client.
+    2. **Upload to Cloud Shell**: 
+       * In the Cloud Shell Editor, right-click any folder and select **Upload**.
+       * Upload the `.json` file you just downloaded (rename it to `client_secret.json`).
+    3. **Login with Custom Client**:
+        ```bash
+        gcloud auth application-default login \
+          --client-id-file=client_secret.json \
+          --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/gmail.modify"
+        ```
+        *Now, when you authenticate, you will see the **Advanced** link. Click it and select **Go to [Project Name] (unsafe)**.*
+    4. **Sync to Agent**: (Run this after Step 3.2 "Launch Service" is complete)
+        ```bash
+        USER_EMAIL=$(gcloud config get-value account)
+        SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
+        
+        curl -X POST "$SERVICE_URL/api/sync-credentials" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"user_email\": \"$USER_EMAIL\",
+            \"credentials\": $(cat ~/.config/gcloud/application_default_credentials.json)
+          }"
+        ```
+
 ## Step 3: Deploy Backend (Cloud Run)
 
 1.  **Build Container**:
