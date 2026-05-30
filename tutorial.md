@@ -79,86 +79,28 @@ Before you begin, ensure you have the following accounts and keys:
 
 3.  **Permanent Autonomy (Optional but Recommended)**:
     This grants your agent a persistent **Refresh Token** so it never expires.
-    1. **Create Desktop Client**:
+    
+    1. **Create Desktop Client**: 
        - Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
        - Click **CREATE CREDENTIALS** > **OAuth client ID**.
        - **Application type**: Desktop app. **Name**: "Agent Permanent Auth".
        - Click **CREATE**, then click the **Download JSON** icon for the new client.
-    2. **Upload & Sync**:
-       - Upload the `.json` file to Cloud Shell (rename to `client_secret.json`).
-       - Run this "All-in-One" sync script:
-
+    2. **Sync Credentials**: 
+       - Upload the `.json` file to the `agents/smart-email-manager/` folder (rename to `client_secret.json`).
+       - Run the pre-packaged sync script:
        ```bash
-        # 1. Install missing helper dependencies silently
-        pip install google-auth-oauthlib requests --quiet
-       ```
-
-       ```bash
-       # 2. Generate the dynamic OAuth loopback synchronization script
-       cat << 'EOF' > permanent_auth.py
-import json, os, requests
-from google_auth_oauthlib.flow import InstalledAppFlow
-
-# Fix for InsecureTransportError when using http://localhost
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
-# 1. Setup Environment Targets
-SCOPES = [
-    'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com/auth/gmail.modify'
-]
-       SERVICE_URL = os.popen("gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)'").read().strip()
-       USER_EMAIL = os.popen("gcloud config get-value account").read().strip()
-
-       # 2. Run Headless Oauth Loopback Flow
-       flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
-       flow.redirect_uri = 'http://localhost'
-
-       auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
-       print(f"\n---> Visit this URL to authorize your session:\n{auth_url}\n")
-       print("---> After authorizing, your browser will fail to load a 'localhost' web page.")
-       print("---> Copy that entire BROKEN URL string out of your address bar and paste it below.\n")
-
-       res_url = input("Paste FULL localhost URL: ").strip()
-
-       if not res_url.startswith("http"):
-           print("\n[!] Error: You must paste the complete fallback URL starting with http://localhost...")
-           exit(1)
-
-       # Exchange verification callback parameters for tokens
-       flow.fetch_token(authorization_response=res_url)
-       creds = flow.credentials
-
-       # 3. Formulate Refreshable Payload & Synchronize with Cloud Run Agent
-       payload = {
-           "user_email": USER_EMAIL,
-           "credentials": {
-               "access_token": creds.token,
-               "refresh_token": creds.refresh_token,
-               "client_id": creds.client_id,
-               "client_secret": creds.client_secret
-           }
-       }
-
-       print(f"\nPushing credentials to: {SERVICE_URL}/api/sync-credentials")
-       resp = requests.post(f"{SERVICE_URL}/api/sync-credentials", json=payload)
-
-       print(f"\nStatus Code: {resp.status_code}")
-       try:
-           print(f"Result Body: {json.dumps(resp.json(), indent=2)}")
-       except Exception:
-           print(f"Raw Output: {resp.text}")
-       EOF
-
-       # 3. Execute the script immediately
+       cd agents/smart-email-manager
+       
+       # Install requirements
+       pip install google-auth-oauthlib requests --quiet
+       
+       # Run the sync automation
        python3 permanent_auth.py
        ```
-
-    3. **Authorize**:
-       - When the script runs, it will say "Please visit this URL". **Ignore that URL.**
-       - Instead, click **Web Preview** (top right of Cloud Shell) > **Change port** > Type **8081** > **Change and Preview**.
-       - Complete the login in the new window (Click **Advanced** > **Go to [Project] (unsafe)**).
-       - Once you see "The authentication flow has completed", return to terminal to see the "Success" message.
+    3. **Follow terminal prompts**: 
+       - Visit the URL printed in the terminal.
+       - Log in and bypass the "Unsafe" warning.
+       - Paste the final `http://localhost...` URL back into the terminal.
 
 ## Step 3: Deploy Backend (Cloud Run)
 
