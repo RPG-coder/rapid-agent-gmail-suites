@@ -96,14 +96,17 @@ Before you begin, ensure you have the following accounts and keys:
        ```bash
        # 2. Generate the dynamic OAuth loopback synchronization script
        cat << 'EOF' > permanent_auth.py
-       import json, os, requests
-       from google_auth_oauthlib.flow import InstalledAppFlow
+import json, os, requests
+from google_auth_oauthlib.flow import InstalledAppFlow
 
-       # 1. Setup Environment Targets
-       SCOPES = [
-           'https://www.googleapis.com/auth/cloud-platform',
-           'https://www.googleapis.com/auth/gmail.modify'
-       ]
+# Fix for InsecureTransportError when using http://localhost
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+# 1. Setup Environment Targets
+SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/gmail.modify'
+]
        SERVICE_URL = os.popen("gcloud run services describe smart-email-manager-agent --platform managed --region us-central1 --format='value(status.url)'").read().strip()
        USER_EMAIL = os.popen("gcloud config get-value account").read().strip()
 
