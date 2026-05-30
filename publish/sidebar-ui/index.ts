@@ -299,10 +299,18 @@ export function verifySystem() {
     const gmailToken = ScriptApp.getOAuthToken();
     const url = `${cloudRunUrl}/api/verify-system?gmail_token=${encodeURIComponent(gmailToken)}&project_id=${encodeURIComponent(projectId)}`;
 
-    const response = UrlFetchApp.fetch(url, { method: "get", muteHttpExceptions: true });
-    const result = JSON.parse(response.getContentText());
+    // Note: Apps Script URLFetchApp does not support custom timeout settings in the options object.
+    // It has a hard limit (usually 60s), but we'll wrap the logic to handle errors better.
+    const response = UrlFetchApp.fetch(url, { 
+      method: "get", 
+      muteHttpExceptions: true
+    });
+    
+    const responseCode = response.getResponseCode();
+    const content = response.getContentText();
 
-    if (response.getResponseCode() === 200) {
+    if (responseCode === 200) {
+      const result = JSON.parse(content);
       // Check for any warnings/errors in the stack
       const issues = Object.keys(result).filter(k => result[k].status !== "ok");
       
@@ -312,15 +320,19 @@ export function verifySystem() {
       } else {
         let msg = "⚠️ Partial Setup:\n";
         issues.forEach(k => {
-          msg += `- ${k.toUpperCase()}: ${result[k].message}\n`;
+          msg += `- ${k.toUpperCase()}: ${result[k].message || "Check Logs"}\n`;
         });
         return msg;
       }
     } else {
-      return "Backend Verification Error: " + (result.detail || "Connection failed");
+      return `Backend Verification Error (${responseCode}): ${content.slice(0, 100)}`;
     }
   } catch (error) {
-    return "Network Error: " + error.toString();
+    const errorMsg = error.toString();
+    if (errorMsg.includes("timeout") || errorMsg.includes("Deadline") || errorMsg.includes("Exceeded maximum execution time")) {
+      return "⏱️ Verification Timeout: The backend is taking too long. Please check your Cloud Run logs for errors.";
+    }
+    return "Network Error: " + errorMsg;
   }
 }
 
