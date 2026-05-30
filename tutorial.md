@@ -145,7 +145,9 @@ Before you begin, ensure you have the following accounts and keys:
       "https://discoveryengine.googleapis.com/v1beta/projects/$(gcloud config get-value project)/locations/global/collections/default_collection/engines?engineId=smart-email-manager"
     ```
 
-2.  **Create Pub/Sub Bridge**:
+2.  **Create Pub/Sub Bridges**:
+
+    **Bridge A: Gmail Notifications** (Incoming Mail)
     ```bash
     gcloud pubsub topics create gmail-notifications || true
     gcloud pubsub topics add-iam-policy-binding gmail-notifications \
@@ -157,7 +159,16 @@ Before you begin, ensure you have the following accounts and keys:
     gcloud pubsub subscriptions update gmail-notifications-sub --push-endpoint="$SERVICE_URL/api/on-new-mail"
     ```
 
-2.  **Activate Gmail Watch (The Handshake)**:
+    **Bridge B: Auto-Reorganization** (Self-Healing)
+    ```bash
+    gcloud pubsub topics create reorganize-inbox || true
+
+    gcloud pubsub subscriptions create reorganize-inbox-sub --topic=reorganize-inbox \
+        --push-endpoint="$SERVICE_URL/api/reorganize" || \
+    gcloud pubsub subscriptions update reorganize-inbox-sub --push-endpoint="$SERVICE_URL/api/reorganize"
+    ```
+
+3.  **Activate Gmail Watch (The Handshake)**:
 
     To bypass security blocks on personal accounts, we use Apps Script to perform the handshake.
 
