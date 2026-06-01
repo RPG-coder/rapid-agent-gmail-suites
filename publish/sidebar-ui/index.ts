@@ -2,6 +2,7 @@ import { createHomePage } from './pages/homePage';
 import { createSEMDeployPage } from './organisms/sem/semDeploy';
 import { createVerifyDeploymentPage } from './organisms/sem/verifyDeployment';
 import { createMongoSetupWizardPage } from './organisms/sem/mongoSetupWizard';
+import { createSettingsPage } from './pages/settingsPage';
 import { listUserProjects } from './utils/gcpScanner';
 
 /**
@@ -41,8 +42,93 @@ export function onGmailMessage(e: any) {
  */
 export function onViewSettings(e: any) {
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Settings coming soon."))
+    .setNavigation(CardService.newNavigation().pushCard(createSettingsPage()))
     .build();
+}
+
+/**
+ * Action: Save Smart Email Manager Configurations
+ */
+export function onSaveSettings(e: any) {
+  const cloudRunUrl = getCloudRunUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+  
+  // Parse form inputs back into numerical/boolean values for the backend
+  const settings = {
+    "AUTO_SYNC_NEW_EMAILS": e.formInput.auto_sync === "true",
+    "MAX_SEMANTIC_LABELS": parseInt(e.formInput.max_labels),
+    "DEFAULT_SIMILARITY_THRESHOLD": parseFloat(e.formInput.sim_threshold),
+    "REORG_COOLDOWN_HOURS": parseFloat(e.formInput.reorg_cooldown),
+    "BACKLOG_THRESHOLD": parseInt(e.formInput.backlog_threshold),
+    "ADAPTIVE_THRESHOLD_HYSTERESIS": parseFloat(e.formInput.hysteresis),
+    "BATCH_CLASSIFICATION_FREQUENCY": parseInt(e.formInput.batch_freq)
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/settings`, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        user_email: userEmail,
+        settings: settings
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("✅ Configurations saved successfully!"))
+        .setNavigation(CardService.newNavigation().updateCard(createSettingsPage()))
+        .build();
+    } else {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("❌ Error: " + response.getContentText()))
+        .build();
+    }
+  } catch (err) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("⚠️ Connection Error: " + err.toString()))
+      .build();
+  }
+}
+
+/**
+ * Action: Trigger Manual Historical Sync
+ */
+export function onManualSync(e: any) {
+  const cloudRunUrl = getCloudRunUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+  const lookback = parseInt(e.formInput.sync_range || "30");
+
+  try {
+    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/sync-historical`, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        user_email: userEmail,
+        lookback_days: lookback
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      const timestamp = new Date().toLocaleString();
+      PropertiesService.getScriptProperties().setProperty("LAST_SYNC_TIMESTAMP", timestamp);
+      
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText(`🚀 Sync triggered for last ${lookback} days!`))
+        .setNavigation(CardService.newNavigation().updateCard(createSettingsPage()))
+        .build();
+    } else {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("❌ Sync Failed: " + response.getContentText()))
+        .build();
+    }
+  } catch (err) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("⚠️ Connection Error: " + err.toString()))
+      .build();
+  }
 }
 
 export function onCheckConnections(e: any) {
@@ -367,6 +453,8 @@ var gasGlobal: any = typeof global !== 'undefined' ? global : this;
 gasGlobal.onHomepage = onHomepage;
 gasGlobal.onGmailMessage = onGmailMessage;
 gasGlobal.onViewSettings = onViewSettings;
+gasGlobal.onSaveSettings = onSaveSettings;
+gasGlobal.onManualSync = onManualSync;
 gasGlobal.onCheckConnections = onVerifyInstallation;
 gasGlobal.onVerifyInstallation = onVerifyInstallation;
 gasGlobal.onAskQuestions = onAskQuestions;
