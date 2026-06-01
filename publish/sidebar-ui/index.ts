@@ -194,8 +194,8 @@ export function onOpenMongoDBRegistration(e: any) {
 export function onOpenCloudShellSetup(e: any) {
   const cloudShellUrl = `https://shell.cloud.google.com/cloudshell/editor?` +
     `cloudshell_git_repo=https://github.com/RPG-coder/rapid-agent-gmail-suites.git&` +
-    `cloudshell_tutorial=tutorial.md`;
-  
+    `cloudshell_tutorial=smart-email-manager-tutorial.md`;
+
   return CardService.newActionResponseBuilder()
     .setOpenLink(CardService.newOpenLink().setUrl(cloudShellUrl))
     .build();
@@ -379,7 +379,7 @@ export function verifySystem() {
   const cloudRunUrl = props.getProperty("CLOUD_RUN_URL");
   const projectId = props.getProperty("GCP_PROJECT_ID") || "grah-2026";
 
-  if (!cloudRunUrl) return "Error: Cloud Run URL missing. Please run Step 4 in tutorial.md.";
+  if (!cloudRunUrl) return "Error: Cloud Run URL missing. Please run Step 4 in smart-email-manager-tutorial.md.";
 
   try {
     const gmailToken = ScriptApp.getOAuthToken();
@@ -466,3 +466,4 @@ gasGlobal.onOpenMongoDBRegistration = onOpenMongoDBRegistration;
 gasGlobal.onOpenCloudShellSetup = onOpenCloudShellSetup;
 gasGlobal.onGetAgentLink = onGetAgentLink;
 gasGlobal.onResetSetupState = onResetSetupState;
+

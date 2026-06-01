@@ -1,5 +1,5 @@
 import { createPage } from '../atoms/page';
-import { getCloudRunUrl } from '../../index';
+import { getCloudRunUrl } from '../index';
 
 /**
  * Page: Smart Email Manager Settings
