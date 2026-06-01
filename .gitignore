@@ -5,3 +5,7 @@ node_modules/
 dist/
 build/
 .env
+tmp
+client-secret.json
+image.png
+problem*.png
