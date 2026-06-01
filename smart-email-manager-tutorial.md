@@ -66,14 +66,14 @@ Before you begin, ensure you have the following accounts and keys:
     - Go to **Project Settings (Gear icon)** > **Change Project** > Paste the Project Number.
 
 2.  **Grant Deployment Roles**:
-    Set Environment Variables:
+    **Set Environment Variables:**
 
     ```bash
     USER_EMAIL=${SETUP_TOKEN:-$(gcloud config get-value account)}
     PROJECT_ID=$(gcloud config get-value project)
     ```
 
-    Below will grant deployment roles,
+    Below will **grant deployment roles** needed for this project,
 
     ```bash
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/run.admin"
@@ -85,20 +85,20 @@ Before you begin, ensure you have the following accounts and keys:
 ## Step 3: Deploy Backend (Cloud Run)
 
 1.  **Build Container**:
-    This need to be done as part of smart-email-manager module:
+    This need to be done as part of **smart-email-manager** module:
 
     ```bash
     cd agents/smart-email-manager
     ```
 
-    Initialize variables if not set:
+    **Initialize variables if not set:**
 
     ```bash
     PROJECT_ID=$(gcloud config get-value project)
     CHOSEN_REGION=${CHOSEN_REGION:-us-central1}
     ```
 
-    Create repository:
+    **Create repository:**
 
     ```bash
     gcloud artifacts repositories create agent-repo \
@@ -106,14 +106,14 @@ Before you begin, ensure you have the following accounts and keys:
         --location=$CHOSEN_REGION || true
     ```
 
-    Build and Tag:
+    **Build and Tag:**
 
     ```bash
     gcloud builds submit --tag $CHOSEN_REGION-docker.pkg.dev/$PROJECT_ID/agent-repo/smart-email-manager-agent .
     ```
 
 2.  **Launch Service**:
-    Deploy the agent:
+    **Deploy the agent:**
 
     ```bash
     gcloud run deploy smart-email-manager-agent \
@@ -121,32 +121,38 @@ Before you begin, ensure you have the following accounts and keys:
       --platform managed --region $CHOSEN_REGION --allow-unauthenticated --port 8080
     ```
 
-    Update service with its own URL:
+    **Update service with its own URL:**
 
     ```bash
     SERVICE_URL=$(gcloud run services describe smart-email-manager-agent --platform managed --region $CHOSEN_REGION --format='value(status.url)')
     gcloud run services update smart-email-manager-agent --set-env-vars CLOUD_RUN_URL=$SERVICE_URL --region $CHOSEN_REGION
     ```
 
-3.  **Configure Secrets**:
-    Replace the placeholders below with your actual keys.
+3.  **Export Secrets**:
+
+    ```bash
+    export MONGO_URI="your_mongodb_atlas_uri"
+    export VOYAGE_API_KEY="your_voyage_api_key"
+    ```
+
+4.  **Configure Secrets**:
     ```bash
     gcloud run services update smart-email-manager-agent \
-      --set-env-vars="MONGO_URI=your_mongodb_atlas_uri" \
-      --set-env-vars="VOYAGE_API_KEY=your_voyage_api_key" \
+      --set-env-vars="MONGO_URI=$MONGO_URI" \
+      --set-env-vars="VOYAGE_API_KEY=$VOYAGE_API_KEY" \
       --region $CHOSEN_REGION
     ```
 
 ## Step 4: Provision Infra (Pub/Sub & Vertex AI)
 
 1.  **Provision Vertex AI Search**:
-    1. Enable API:
+    1. **Enable API:**
 
     ```bash
     gcloud services enable discoveryengine.googleapis.com
     ```
 
-    2. Create Placeholder Data Store
+    2. **Create Placeholder Data Store**
 
     ```bash
     curl -X POST \
@@ -170,8 +176,9 @@ Before you begin, ensure you have the following accounts and keys:
 
 2.  **Create Pub/Sub Bridges**:
 
+    **Bridge A:** Incoming Mail
+
     ```bash
-    # Bridge A: Incoming Mail
     gcloud pubsub topics create gmail-notifications || true
     gcloud pubsub topics add-iam-policy-binding gmail-notifications \
         --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
@@ -179,8 +186,11 @@ Before you begin, ensure you have the following accounts and keys:
     gcloud pubsub subscriptions create gmail-notifications-sub --topic=gmail-notifications \
         --push-endpoint="$SERVICE_URL/api/on-new-mail" || \
     gcloud pubsub subscriptions update gmail-notifications-sub --push-endpoint="$SERVICE_URL/api/on-new-mail"
+    ```
 
-    # Bridge B: Auto-Reorganization
+    **Bridge B:** Auto-Reorganization
+
+    ```bash
     gcloud pubsub topics create reorganize-inbox || true
     gcloud pubsub subscriptions create reorganize-inbox-sub --topic=reorganize-inbox \
         --push-endpoint="$SERVICE_URL/api/reorganize" || \
