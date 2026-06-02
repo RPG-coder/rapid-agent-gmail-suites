@@ -199,8 +199,8 @@ Before you begin, ensure you have the following accounts and keys:
 
 3.  **Activate Gmail Watch (The Handshake)**:
     1. **Pre-flight**: Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent). Set **User Type: External**. Under **Test users**, add your email and click **SAVE**.
-    2. Open your **Apps Script Editor**.
-    3. Paste and **Run** the `activateGmailWatch` function from the sidebar (or the codebase) to complete the link.
+    2. Open your [**Apps Script Editor**](https://script.google.com/). Go to Rapid Agent Suite Project.
+    3. Create a new script (add a file). Paste and **Run** the `activateGmailWatch` function from the sidebar (or the codebase) to complete the link.
     ```js
     function activateGmailWatch() {
       GmailApp.getInboxUnreadCount(); // Triggers permission prompt

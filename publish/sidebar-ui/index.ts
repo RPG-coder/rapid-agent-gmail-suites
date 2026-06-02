@@ -3,6 +3,8 @@ import { createSEMDeployPage } from './organisms/sem/semDeploy';
 import { createVerifyDeploymentPage } from './organisms/sem/verifyDeployment';
 import { createMongoSetupWizardPage } from './organisms/sem/mongoSetupWizard';
 import { createSettingsPage } from './pages/settingsPage';
+import { createWorkflowSettingsPage } from './pages/workflowSettingsPage';
+import { createAITuningSettingsPage } from './pages/aiTuningSettingsPage';
 import { listUserProjects } from './utils/gcpScanner';
 
 /**
@@ -47,22 +49,37 @@ export function onViewSettings(e: any) {
 }
 
 /**
- * Action: Save Smart Email Manager Configurations
+ * Navigation: Show Sub-Settings Pages
+ */
+export function onShowWorkflowSettings(e: any) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(createWorkflowSettingsPage()))
+    .build();
+}
+
+export function onShowAITuningSettings(e: any) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(createAITuningSettingsPage()))
+    .build();
+}
+
+/**
+ * Action: Save Smart Email Manager Configurations (Supports Partial Updates)
  */
 export function onSaveSettings(e: any) {
   const cloudRunUrl = getCloudRunUrl();
   const userEmail = Session.getActiveUser().getEmail();
   
-  // Parse form inputs back into numerical/boolean values for the backend
-  const settings = {
-    "AUTO_SYNC_NEW_EMAILS": e.formInput.auto_sync === "true",
-    "MAX_SEMANTIC_LABELS": parseInt(e.formInput.max_labels),
-    "DEFAULT_SIMILARITY_THRESHOLD": parseFloat(e.formInput.sim_threshold),
-    "REORG_COOLDOWN_HOURS": parseFloat(e.formInput.reorg_cooldown),
-    "BACKLOG_THRESHOLD": parseInt(e.formInput.backlog_threshold),
-    "ADAPTIVE_THRESHOLD_HYSTERESIS": parseFloat(e.formInput.hysteresis),
-    "BATCH_CLASSIFICATION_FREQUENCY": parseInt(e.formInput.batch_freq)
-  };
+  const settings: any = {};
+  
+  // Dynamically parse inputs if they exist in the form
+  if (e.formInput.auto_sync !== undefined) settings["AUTO_SYNC_NEW_EMAILS"] = e.formInput.auto_sync === "true";
+  if (e.formInput.max_labels !== undefined) settings["MAX_SEMANTIC_LABELS"] = parseInt(e.formInput.max_labels);
+  if (e.formInput.sim_threshold !== undefined) settings["DEFAULT_SIMILARITY_THRESHOLD"] = parseFloat(e.formInput.sim_threshold);
+  if (e.formInput.reorg_cooldown !== undefined) settings["REORG_COOLDOWN_HOURS"] = parseFloat(e.formInput.reorg_cooldown);
+  if (e.formInput.backlog_threshold !== undefined) settings["BACKLOG_THRESHOLD"] = parseInt(e.formInput.backlog_threshold);
+  if (e.formInput.hysteresis !== undefined) settings["ADAPTIVE_THRESHOLD_HYSTERESIS"] = parseFloat(e.formInput.hysteresis);
+  if (e.formInput.batch_freq !== undefined) settings["BATCH_CLASSIFICATION_FREQUENCY"] = parseInt(e.formInput.batch_freq);
 
   try {
     const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/settings`, {
@@ -77,8 +94,7 @@ export function onSaveSettings(e: any) {
 
     if (response.getResponseCode() === 200) {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("✅ Configurations saved successfully!"))
-        .setNavigation(CardService.newNavigation().updateCard(createSettingsPage()))
+        .setNotification(CardService.newNotification().setText("✅ Configuration saved!"))
         .build();
     } else {
       return CardService.newActionResponseBuilder()
@@ -453,6 +469,8 @@ var gasGlobal: any = typeof global !== 'undefined' ? global : this;
 gasGlobal.onHomepage = onHomepage;
 gasGlobal.onGmailMessage = onGmailMessage;
 gasGlobal.onViewSettings = onViewSettings;
+gasGlobal.onShowWorkflowSettings = onShowWorkflowSettings;
+gasGlobal.onShowAITuningSettings = onShowAITuningSettings;
 gasGlobal.onSaveSettings = onSaveSettings;
 gasGlobal.onManualSync = onManualSync;
 gasGlobal.onCheckConnections = onVerifyInstallation;
