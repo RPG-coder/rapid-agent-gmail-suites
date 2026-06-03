@@ -65,22 +65,37 @@ export function onShowAITuningSettings(e: any) {
 
 /**
  * Action: Save Smart Email Manager Configurations (Supports Partial Updates)
+ * Enhanced with Local Caching for UI Speed.
  */
 export function onSaveSettings(e: any) {
+  const props = PropertiesService.getScriptProperties();
   const cloudRunUrl = getCloudRunUrl();
   const userEmail = Session.getActiveUser().getEmail();
   
   const settings: any = {};
   
-  // Dynamically parse inputs if they exist in the form
-  if (e.formInput.auto_sync !== undefined) settings["AUTO_SYNC_NEW_EMAILS"] = e.formInput.auto_sync === "true";
-  if (e.formInput.max_labels !== undefined) settings["MAX_SEMANTIC_LABELS"] = parseInt(e.formInput.max_labels);
-  if (e.formInput.sim_threshold !== undefined) settings["DEFAULT_SIMILARITY_THRESHOLD"] = parseFloat(e.formInput.sim_threshold);
-  if (e.formInput.reorg_cooldown !== undefined) settings["REORG_COOLDOWN_HOURS"] = parseFloat(e.formInput.reorg_cooldown);
-  if (e.formInput.backlog_threshold !== undefined) settings["BACKLOG_THRESHOLD"] = parseInt(e.formInput.backlog_threshold);
-  if (e.formInput.hysteresis !== undefined) settings["ADAPTIVE_THRESHOLD_HYSTERESIS"] = parseFloat(e.formInput.hysteresis);
-  if (e.formInput.batch_freq !== undefined) settings["BATCH_CLASSIFICATION_FREQUENCY"] = parseInt(e.formInput.batch_freq);
+  // 1. Update LOCAL CACHE immediately (Optimistic UI)
+  if (e.formInput.auto_sync !== undefined) {
+    settings["AUTO_SYNC_NEW_EMAILS"] = e.formInput.auto_sync === "true";
+  }
+  if (e.formInput.max_labels !== undefined) {
+    settings["MAX_SEMANTIC_LABELS"] = parseInt(e.formInput.max_labels);
+    props.setProperty("SETTING_MAX_LABELS", e.formInput.max_labels);
+  }
+  if (e.formInput.sim_threshold !== undefined) {
+    settings["DEFAULT_SIMILARITY_THRESHOLD"] = parseFloat(e.formInput.sim_threshold);
+    props.setProperty("SETTING_SIM_THRESHOLD", e.formInput.sim_threshold);
+  }
+  if (e.formInput.reorg_cooldown !== undefined) {
+    settings["REORG_COOLDOWN_HOURS"] = parseFloat(e.formInput.reorg_cooldown);
+    props.setProperty("SETTING_REORG_COOLDOWN", e.formInput.reorg_cooldown);
+  }
+  if (e.formInput.backlog_threshold !== undefined) {
+    settings["BACKLOG_THRESHOLD"] = parseInt(e.formInput.backlog_threshold);
+    props.setProperty("SETTING_BACKLOG_THRESHOLD", e.formInput.backlog_threshold);
+  }
 
+  // 2. Async-style fetch to backend
   try {
     const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/settings`, {
       method: "post",
@@ -93,12 +108,53 @@ export function onSaveSettings(e: any) {
     });
 
     if (response.getResponseCode() === 200) {
+      props.setProperty("SETTING_LAST_SYNC", new Date().toLocaleString());
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("✅ Configuration saved!"))
+        .setNotification(CardService.newNotification().setText("✅ Saved & Synced!"))
+        .build();
+    } else {
+      // Still return success notification but with a warning about backend
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("⚠️ Cached locally, but backend update failed. Check logs."))
+        .build();
+    }
+  } catch (err) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("⚠️ Cached locally. (Cloud Sync Offline)"))
+      .build();
+  }
+}
+
+/**
+ * Action: Explicitly fetch latest settings from backend
+ */
+export function onFetchLatestSettings(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  const cloudRunUrl = getCloudRunUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+
+  try {
+    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/settings?user_email=${encodeURIComponent(userEmail)}`, {
+      method: "get",
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      const s = JSON.parse(response.getContentText());
+      if (s.MAX_SEMANTIC_LABELS) props.setProperty("SETTING_MAX_LABELS", s.MAX_SEMANTIC_LABELS.toString());
+      if (s.DEFAULT_SIMILARITY_THRESHOLD) props.setProperty("SETTING_SIM_THRESHOLD", s.DEFAULT_SIMILARITY_THRESHOLD.toString());
+      if (s.REORG_COOLDOWN_HOURS) props.setProperty("SETTING_REORG_COOLDOWN", s.REORG_COOLDOWN_HOURS.toString());
+      if (s.BACKLOG_THRESHOLD) props.setProperty("SETTING_BACKLOG_THRESHOLD", s.BACKLOG_THRESHOLD.toString());
+      
+      props.setProperty("SETTING_LAST_SYNC", new Date().toLocaleString());
+
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("🔄 Settings updated from cloud!"))
+        .setNavigation(CardService.newNavigation().updateCard(createAITuningSettingsPage()))
         .build();
     } else {
       return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("❌ Error: " + response.getContentText()))
+        .setNotification(CardService.newNotification().setText("❌ Sync Failed: Backend busy or unreachable."))
         .build();
     }
   } catch (err) {
