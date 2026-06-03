@@ -182,7 +182,7 @@ export function showVerifyDeployment(e: any) {
 export function onRegionChange(e: any) {
   const region = e.formInput.deployment_region;
   if (region && region !== "none") {
-    PropertiesService.getScriptProperties().setProperty("GCP_REGION", region);
+    PropertiesService.getScriptProperties().setProperty("CHOSEN_REGION", region);
   }
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(createSEMDeployPage(e)))
@@ -222,7 +222,7 @@ export function onOpenCloudShellSetup(e: any) {
  */
 export function onGetAgentLink(e: any) {
   const props = PropertiesService.getScriptProperties();
-  const region = props.getProperty("GCP_REGION");
+  const region = props.getProperty("CHOSEN_REGION");
   
   if (!region || region === "none") {
     return CardService.newActionResponseBuilder()

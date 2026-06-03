@@ -82,10 +82,40 @@ Before you begin, ensure you have the following accounts and keys:
     gcloud projects add-iam-policy-binding $PROJECT_ID --member="user:$USER_EMAIL" --role="roles/aiplatform.user"
     ```
 
-## Step 3: Deploy Backend (Cloud Run)
+## Step 3: Deploy Backend & Infrastructure
 
-1.  **Build Container**:
-    This need to be done as part of **smart-email-manager** module:
+You have two options to deploy the backend. **Option A** is the recommended "One-Click" path.
+
+### Option A: Automated Deployment (Recommended)
+
+This script automates Step 3, Step 4 (Infrastructure wiring), and Step 4.3 (Apps Script creation).
+
+> **Note**: This requires a `.env` file in the project root with `MONGO_URI` and `VOYAGE_API_KEY`. The script defaults to the region `us-central1`, but you can override this by setting the `CHOSEN_REGION` environment variable.
+
+**Windows (PowerShell):**
+
+```powershell
+cd agents/smart-email-manager/deploy
+./deploy_sem.ps1
+```
+
+**Linux/macOS (Bash):**
+
+```bash
+cd agents/smart-email-manager/deploy
+chmod +x deploy_sem.sh
+./deploy_sem.sh
+```
+
+---
+
+### Option B: Manual Deployment
+
+If you prefer to run each command manually, follow the steps below.
+
+#### 1. Build Container
+
+This need to be done as part of **smart-email-manager** module:
 
     ```bash
     cd agents/smart-email-manager

@@ -44,7 +44,7 @@ export function listUserProjects(): any[] {
  * Optimization: Uses direct GET if region is known, otherwise falls back to list.
  */
 export function findCloudRunService(projectId: string): any | null {
-  const region = PropertiesService.getScriptProperties().getProperty("GCP_REGION");
+  const region = PropertiesService.getScriptProperties().getProperty("CHOSEN_REGION");
   
   // OPTIMIZATION: If we have a region, try a direct GET first (Fast Path)
   if (region && region !== "none") {
