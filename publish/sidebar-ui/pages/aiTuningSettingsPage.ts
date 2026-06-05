@@ -6,31 +6,16 @@ import { getCloudRunUrl } from '../index';
  * Granular settings for AI behavior.
  */
 export function createAITuningSettingsPage() {
-  const cloudRunUrl = getCloudRunUrl();
-  const userEmail = Session.getActiveUser().getEmail();
+  const props = PropertiesService.getScriptProperties();
 
-  // Default fallback settings
-  let currentSettings = {
-    "MAX_SEMANTIC_LABELS": 5,
-    "REORG_COOLDOWN_HOURS": 1,
-    "BACKLOG_THRESHOLD": 15,
-    "DEFAULT_SIMILARITY_THRESHOLD": 0.85,
-    "ADAPTIVE_THRESHOLD_HYSTERESIS": 0.85,
-    "BATCH_CLASSIFICATION_FREQUENCY": 10
+  // Load from local cache (optimistic UI) or defaults
+  const currentSettings = {
+    "MAX_SEMANTIC_LABELS": props.getProperty("SETTING_MAX_LABELS") || "5",
+    "DEFAULT_SIMILARITY_THRESHOLD": props.getProperty("SETTING_SIM_THRESHOLD") || "0.85",
+    "REORG_COOLDOWN_HOURS": props.getProperty("SETTING_REORG_COOLDOWN") || "1",
+    "BACKLOG_THRESHOLD": props.getProperty("SETTING_BACKLOG_THRESHOLD") || "15",
+    "LAST_SYNC": props.getProperty("SETTING_LAST_SYNC") || "Never"
   };
-
-  try {
-    const response = UrlFetchApp.fetch(`${cloudRunUrl}/api/settings?user_email=${encodeURIComponent(userEmail)}`, {
-      method: "get",
-      muteHttpExceptions: true
-    });
-    if (response.getResponseCode() === 200) {
-      const allSettings = JSON.parse(response.getContentText());
-      currentSettings = { ...currentSettings, ...allSettings };
-    }
-  } catch (e) {
-    console.error("Failed to fetch settings: " + e.toString());
-  }
 
   const sections = [];
   const configSection = CardService.newCardSection().setHeader("AI Configurations");
@@ -40,28 +25,28 @@ export function createAITuningSettingsPage() {
   configSection.addWidget(CardService.newTextInput()
     .setFieldName("max_labels")
     .setTitle("Limit")
-    .setValue(currentSettings.MAX_SEMANTIC_LABELS.toString()));
+    .setValue(currentSettings.MAX_SEMANTIC_LABELS));
 
   // Similarity Threshold
   configSection.addWidget(CardService.newTextParagraph().setText("<b>Similarity Threshold</b><br/><small>Higher = more accurate but strict.</small>"));
   configSection.addWidget(CardService.newTextInput()
     .setFieldName("sim_threshold")
     .setTitle("Threshold (e.g. 0.85)")
-    .setValue(currentSettings.DEFAULT_SIMILARITY_THRESHOLD.toString()));
+    .setValue(currentSettings.DEFAULT_SIMILARITY_THRESHOLD));
 
   // Reorg Cooldown
   configSection.addWidget(CardService.newTextParagraph().setText("<b>Reorg Cooldown (Hours)</b><br/><small>Speed limit for label changes.</small>"));
   configSection.addWidget(CardService.newTextInput()
     .setFieldName("reorg_cooldown")
     .setTitle("Hours")
-    .setValue(currentSettings.REORG_COOLDOWN_HOURS.toString()));
+    .setValue(currentSettings.REORG_COOLDOWN_HOURS));
 
   // Backlog Threshold
   configSection.addWidget(CardService.newTextParagraph().setText("<b>Backlog Threshold</b><br/><small>Min emails before new label.</small>"));
   configSection.addWidget(CardService.newTextInput()
     .setFieldName("backlog_threshold")
     .setTitle("Count")
-    .setValue(currentSettings.BACKLOG_THRESHOLD.toString()));
+    .setValue(currentSettings.BACKLOG_THRESHOLD));
 
   configSection.addWidget(CardService.newTextButton()
     .setText("Save AI Settings")
@@ -70,11 +55,20 @@ export function createAITuningSettingsPage() {
 
   sections.push(configSection);
 
+  // Advanced Sync Section
+  const syncSection = CardService.newCardSection().setHeader("Cloud Sync");
+  syncSection.addWidget(CardService.newTextParagraph().setText(`<small>Last synced from cloud: ${currentSettings.LAST_SYNC}</small>`));
+  syncSection.addWidget(CardService.newTextButton()
+    .setText("Fetch Latest from Cloud")
+    .setOnClickAction(CardService.newAction().setFunctionName("onFetchLatestSettings")));
+  
+  sections.push(syncSection);
+
   return createPage(
     "AITuningPage",
     "AI Tuning",
     "Settings / AI Logic",
-    "Fine-tune the intelligence and responsiveness of your agent.",
+    "Fine-tune the responsiveness of your agent. Changes are cached locally for speed.",
     sections
   );
 }
