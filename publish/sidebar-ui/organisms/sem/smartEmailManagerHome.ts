@@ -35,6 +35,7 @@ export function createSmartEmailManagerHomeSection() {
   } else {
     buttons.push({ text: "View settings", functionName: "onViewSettings" });
     buttons.push({ text: "Verify Installation", functionName: "showVerifyDeployment" });
+    buttons.push({ text: "📊 Weekly Report", functionName: "onTriggerWeeklyReport" });
   }
 
   return createButtonGroupSection(title, description, buttons);

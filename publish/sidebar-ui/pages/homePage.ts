@@ -28,7 +28,7 @@ export function createHomePage() {
         "Manage your User Preferences in one place. Your email manager will keep it's pace in line with your inbox mails and your activities. Next time it relieves you lo seduce burden at managing emails based on recognized personalization.",
         [
           { text: "View settings", functionName: "onViewSettings" },
-          { text: "Verify & Link Inbox", functionName: "onCheckConnections" }
+          { text: "Verify & Link Inbox", functionName: "onCheckSAMConnections" }
         ]
       )
     ]
