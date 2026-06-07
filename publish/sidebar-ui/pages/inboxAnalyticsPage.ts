@@ -47,6 +47,13 @@ export function createInboxAnalyticsPage() {
     .setFieldName("notify_unsubscribe")
     .addItem("Notify mails to unsubscribe", "true", true));
 
+  // Threshold Setting (New Requirement)
+  recommendationSection.addWidget(CardService.newTextInput()
+    .setFieldName("similarity_threshold")
+    .setTitle("Similarity Threshold (0.1 - 1.0)")
+    .setHint("Lower = more recommendations, Higher = more strict. Default: 0.8")
+    .setValue(PropertiesService.getScriptProperties().getProperty("ANALYTICS_THRESHOLD") || "0.8"));
+
   // Save Button for recommendations
   recommendationSection.addWidget(CardService.newTextButton()
     .setText("Save Preferences")

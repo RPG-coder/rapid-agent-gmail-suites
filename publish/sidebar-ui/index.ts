@@ -243,6 +243,7 @@ export function onTriggerRecommendationReport(e: any) {
   // Read the saved preferences (default to true if not set)
   const notifyTiering = props.getProperty("ANALYTICS_NOTIFY_TIERING") !== "false";
   const notifyUnsub = props.getProperty("ANALYTICS_NOTIFY_UNSUB") !== "false";
+  const threshold = parseFloat(props.getProperty("ANALYTICS_THRESHOLD") || "0.8");
 
   try {
     UrlFetchApp.fetch(`${url}/mcp/call`, {
@@ -250,10 +251,11 @@ export function onTriggerRecommendationReport(e: any) {
       contentType: "application/json",
       payload: JSON.stringify({
         tool: "generate_tiered_recommendation_report",
-        arguments: { 
+        arguments: {
           user_email: userEmail,
           notify_tiering: notifyTiering,
-          notify_unsubscribe: notifyUnsub
+          notify_unsubscribe: notifyUnsub,
+          similarity_threshold: threshold
         }
       }),
       muteHttpExceptions: true
@@ -275,11 +277,13 @@ export function onSaveAnalyticsSettings(e: any) {
   const freq = e.formInput.recommendation_frequency || "daily";
   const notifyTiering = e.formInput.notify_tiering === "true";
   const notifyUnsubscribe = e.formInput.notify_unsubscribe === "true";
+  const threshold = e.formInput.similarity_threshold || "0.8";
 
   props.setProperties({
     "ANALYTICS_FREQ": freq,
     "ANALYTICS_NOTIFY_TIERING": notifyTiering.toString(),
-    "ANALYTICS_NOTIFY_UNSUB": notifyUnsubscribe.toString()
+    "ANALYTICS_NOTIFY_UNSUB": notifyUnsubscribe.toString(),
+    "ANALYTICS_THRESHOLD": threshold
   });
 
   return CardService.newActionResponseBuilder()
