@@ -16,9 +16,9 @@ export function createHomePage() {
       createSmartEmailManagerHomeSection(),
       createButtonGroupSection(
         "Inbox Analytics",
-        "This feature will analyze your mail and present you timely insights, mailbox optimization, mail box recommendations and your average response time to a particular user. You can also ask any insight about you mailbox",
+        "Gain timely insights, optimize your mailbox with tiered recommendations, and analyze your average response times with key contacts.",
         [
-          { text: "View settings", functionName: "onViewSettings" },
+          { text: "View Settings", functionName: "onShowInboxAnalytics" },
           { text: "Ask Mailbox Questions", functionName: "onAskQuestions" },
           { text: "Verify & Link Inbox", functionName: "onCheckConnections" }
         ]

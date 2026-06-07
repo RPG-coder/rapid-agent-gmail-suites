@@ -8,6 +8,7 @@ import { createAITuningSettingsPage } from './pages/aiTuningSettingsPage';
 import { listUserProjects } from './utils/gcpScanner';
 import { createSelfHealingActionsSection, createHITLFormPage } from './organisms/sam/selfHealingActions';
 import { createSmartEmailManagerHomeSection } from './organisms/sem/smartEmailManagerHome';
+import { createInboxAnalyticsPage, createContactSelectionPage } from './pages/inboxAnalyticsPage';
 
 /**
  * Global utility to get the Cloud Run URL from script properties.
@@ -16,6 +17,14 @@ import { createSmartEmailManagerHomeSection } from './organisms/sem/smartEmailMa
 export function getCloudRunUrl(): string {
   const url = PropertiesService.getScriptProperties().getProperty("CLOUD_RUN_URL");
   return url || "https://www.putchakai.com/gmail-addon/404";
+}
+
+/**
+ * Utility: Derive the Inbox Analytics Agent URL.
+ */
+export function getAnalyticsUrl(): string {
+  const semUrl = getCloudRunUrl();
+  return semUrl.replace("smart-email-manager-agent", "inbox-analytics-agent");
 }
 
 /**
@@ -149,6 +158,132 @@ export function onShowWorkflowSettings(e: any) {
 export function onShowAITuningSettings(e: any) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().pushCard(createAITuningSettingsPage()))
+    .build();
+}
+
+/**
+ * Navigation: Show Inbox Analytics Dashboard
+ */
+export function onShowInboxAnalytics(e: any) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(createInboxAnalyticsPage()))
+    .build();
+}
+
+/**
+ * Action: Show Contact Selection for Response Time
+ */
+export function onShowContactSelection(e: any) {
+  const url = getAnalyticsUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+
+  try {
+    const response = UrlFetchApp.fetch(`${url}/mcp/call`, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        tool: "get_contact_list",
+        arguments: { user_email: userEmail }
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText()).result;
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(createContactSelectionPage(result)))
+        .build();
+    }
+    return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText("Error fetching contacts.")).build();
+  } catch (err) {
+    return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText("Analytics Agent Offline.")).build();
+  }
+}
+
+/**
+ * Action: Trigger Response Time Analytics Report
+ */
+export function onGenerateResponseTimeReport(e: any) {
+  const url = getAnalyticsUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+  const selectedContacts = e.formInput.selected_contacts || [];
+
+  if (!selectedContacts || selectedContacts.length === 0) {
+    return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText("Please select at least one contact.")).build();
+  }
+
+  try {
+    UrlFetchApp.fetch(`${url}/mcp/call`, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        tool: "generate_response_time_report",
+        arguments: { user_email: userEmail, contact_emails: selectedContacts }
+      }),
+      muteHttpExceptions: true
+    });
+
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("🚀 Analytics generation started! You will receive an email shortly."))
+      .setNavigation(CardService.newNavigation().popCard())
+      .build();
+  } catch (err) {
+    return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText("Failed to trigger report.")).build();
+  }
+}
+
+/**
+ * Action: Trigger Recommendation Report
+ */
+export function onTriggerRecommendationReport(e: any) {
+  const url = getAnalyticsUrl();
+  const userEmail = Session.getActiveUser().getEmail();
+  const props = PropertiesService.getScriptProperties();
+
+  // Read the saved preferences (default to true if not set)
+  const notifyTiering = props.getProperty("ANALYTICS_NOTIFY_TIERING") !== "false";
+  const notifyUnsub = props.getProperty("ANALYTICS_NOTIFY_UNSUB") !== "false";
+
+  try {
+    UrlFetchApp.fetch(`${url}/mcp/call`, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        tool: "generate_tiered_recommendation_report",
+        arguments: { 
+          user_email: userEmail,
+          notify_tiering: notifyTiering,
+          notify_unsubscribe: notifyUnsub
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText("📊 Recommendation analysis started! Check your inbox in a minute."))
+      .build();
+  } catch (err) {
+    return CardService.newActionResponseBuilder().setNotification(CardService.newNotification().setText("Failed to trigger recommendations.")).build();
+  }
+}
+
+/**
+ * Action: Save Analytics Preferences
+ */
+export function onSaveAnalyticsSettings(e: any) {
+  const props = PropertiesService.getScriptProperties();
+  const freq = e.formInput.recommendation_frequency || "daily";
+  const notifyTiering = e.formInput.notify_tiering === "true";
+  const notifyUnsubscribe = e.formInput.notify_unsubscribe === "true";
+
+  props.setProperties({
+    "ANALYTICS_FREQ": freq,
+    "ANALYTICS_NOTIFY_TIERING": notifyTiering.toString(),
+    "ANALYTICS_NOTIFY_UNSUB": notifyUnsubscribe.toString()
+  });
+
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("✅ Analytics preferences saved!"))
     .build();
 }
 
@@ -515,6 +650,7 @@ gasGlobal.onViewSettings = onViewSettings;
 gasGlobal.onShowWorkflowSettings = onShowWorkflowSettings;
 gasGlobal.onShowAITuningSettings = onShowAITuningSettings;
 gasGlobal.onSaveSettings = onSaveSettings;
+gasGlobal.onFetchLatestSettings = onFetchLatestSettings;
 gasGlobal.onManualSync = onManualSync;
 gasGlobal.onCheckConnections = onCheckConnections;
 gasGlobal.onCheckSAMConnections = onCheckSAMConnections;
@@ -531,6 +667,11 @@ gasGlobal.onResetSetupState = onResetSetupState;
 gasGlobal.onShowHITLForm = onShowHITLForm;
 gasGlobal.onSubmitHITL = onSubmitHITL;
 gasGlobal.onTriggerWeeklyReport = onTriggerWeeklyReport;
+gasGlobal.onShowInboxAnalytics = onShowInboxAnalytics;
+gasGlobal.onShowContactSelection = onShowContactSelection;
+gasGlobal.onGenerateResponseTimeReport = onGenerateResponseTimeReport;
+gasGlobal.onTriggerRecommendationReport = onTriggerRecommendationReport;
+gasGlobal.onSaveAnalyticsSettings = onSaveAnalyticsSettings;
 gasGlobal.showMongoSetupWizard = showMongoSetupWizard;
 gasGlobal.onInitDBDeployment = onInitDBDeployment;
 gasGlobal.onBuildGCPInfrastructure = onBuildGCPInfrastructure;
